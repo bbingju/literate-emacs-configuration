@@ -189,15 +189,57 @@
    #+END_SRC
 
 
+* Orgmode
+  #+BEGIN_SRC emacs-lisp
+    (use-package org
+      :ensure t
+
+      :init (setq org-directory my-org-directory
+		  org-agenda-files my-org-agenda-files
+		  org-default-notes-file (concat org-directory "/notes.org")
+		  org-export-coding-system 'utf-8)
+
+      :mode (("\\.org\\'" . org-mode))
+
+      :bind (("C-c l" . org-store-link)
+	     ("C-c c" . org-capture)
+	     ("C-c a" . org-agenda))
+
+      :config
+      (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
+							       (ditaa . t)
+							       (emacs-lisp . t)))
+      (set-register ?l `(cons 'file ,(concat org-directory "/links.org")))
+      ;; refer to http://orgmode.org/manual/Template-elements.html#Template-elements
+      (setq org-capture-templates
+	    '(("l"                          ; hotkey
+	       "Link"                       ; name
+	       entry                        ; type
+	       (file+headline org-default-notes-file "Links") 
+	       "* %? %^L %^g \n%T" :prepend t)
+	      ("t" "To Do Item" entry (file+headline org-default-notes-file "To Do Items") 
+	       "* %?\n%T" :prepend t)
+	      ("r" "To Read Item" entry (file+headline org-default-notes-file "To Read Items") 
+	       "* %?\n%T" :prepend t)))
+
+      (setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
+
+      (setq org-feed-alist
+	    '(("Slashdot"
+	       "http://rss.slashdot.org/Slashdot/slashdot"
+	       (concat org-directory "/feeds.org")
+	       "Slashdot Entries")))
+      )
+
+
+    (use-package org-bullets
+      :requires org
+      :ensure t
+      :hook (org-mode . (lambda () (org-bullets-mode 1))))
+  #+END_SRC
+
+
 * Programming
-
-** lsp-mode
-   A mode for Language Server Protocol
-
-   #+BEGIN_SRC emacs-lisp
-     (use-package lsp-mode
-       :ensure t)
-   #+END_SRC
 
 ** magit
    I need this definitly. This is an awesome plugin as git client.
@@ -210,8 +252,39 @@
        :bind ("C-x g" . magit-status))
    #+END_SRC
 
-** projectile
+** company
+   #+BEGIN_SRC emacs-lisp
+     (use-package company
+       :ensure t
+       :bind ("C-M-i" . company-complete)
+       :init (add-hook 'after-init-hook `global-company-mode))
+   #+END_SRC
 
+** lsp-mode
+   A mode for Language Server Protocol
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package lsp-mode
+       :ensure t
+       :hook (company-mode . lsp)
+       :commands lsp)
+
+     (use-package company-lsp
+       :ensure t
+       :commands company-lsp)
+   #+END_SRC
+
+** C/C++
+   먼저 llvm을 설치해야한다.
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package eglot
+       :ensure t
+       :init (add-to-list 'eglot-server-programs '((c++-mode c-mode) "clangd"))
+       :hook ((c-mode c++mode) . eglot-ensure))
+   #+END_SRC
+
+** projectile
    #+BEGIN_SRC emacs-lisp
      (use-package projectile
        :ensure t
@@ -221,4 +294,60 @@
        (setq projectile-indexing-method 'alien)
        ;; https://github.com/bbatsov/projectile/issues/1183
        )
+   #+END_SRC
+
+** Python
+   먼저 [[https://github.com/palantir/python-language-server][Python Language Server]]를 설치해야 한다.
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package python
+       :mode ("\\.py\\'" . python-mode)
+       :interpreter ("python3" . python-mode)
+       :config
+       (elpy-enable))
+
+     (use-package elpy
+       :ensure t
+       :init
+       (add-to-list 'auto-mode-alist '("\\.py$" . python-mode))
+       :config
+       (setq elpy-rpc-python-command "python3")
+       (setq python-shell-interpreter "python3")
+       (setq python-shell-interpreter-args "-i")
+       :bind (:map elpy-mode-map
+		   ("M-." . elpy-goto-definition)
+		   ("M-," . pop-tag-mark)))
+
+     (use-package pip-requirements
+       :ensure t
+       :config
+       (add-hook 'pip-requirements-mode-hook #'pip-requirements-auto-complete-setup))
+
+     (use-package py-autopep8
+       :ensure t)
+   #+END_SRC
+
+** elisp
+   #+BEGIN_SRC emacs-lisp
+     (use-package elisp-mode
+       :init
+       (add-hook 'emacs-lisp-mode-hook (lambda () (setq indent-tabs-mode nil)))
+       :bind (:map emacs-lisp-mode-map
+		   ("<f6>" . eval-buffer)
+		   ("M-<f6>" . emacs-lisp-byte-compile-and-load)
+		   ("<return>" . newline-and-indent)))
+
+     (use-package ielm
+       :commands ielm)
+
+     (use-package eldoc-mode
+       :hook (emacs-lisp-mode ielm-mode))
+
+     (use-package paredit
+       :ensure t
+       :hook ((lisp-mode emacs-lisp-mode ielm-mode) . paredit-mode))
+
+     (use-package rainbow-delimiters
+       :ensure t
+       :hook ((emacs-lisp-mode ielm-mode) . rainbow-delimiters-mode))
    #+END_SRC
