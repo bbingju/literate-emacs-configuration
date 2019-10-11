@@ -1,0 +1,224 @@
+#+TITLE: My Literate Emacs Configuration
+#+AUTHOR: Phil Hwang
+
+* How to use it
+
+  #+BEGIN_SRC sh
+    cd
+    git clone https://github.com/bbingju/literate-emacs-configuration.git .emacs.d
+  #+END_SRC
+
+* First of All
+** Add load-path
+
+   #+BEGIN_SRC emacs-lisp
+     (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
+   #+END_SRC
+
+** ELPA configuration
+   #+BEGIN_SRC emacs-lisp
+     (require 'package)
+     (let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
+			 (not (gnutls-available-p))))
+	    (proto (if no-ssl "http" "https")))
+       ;; Comment/uncomment these two lines to enable/disable MELPA and MELPA Stable as desired
+       (add-to-list 'package-archives (cons "melpa" (concat proto "://melpa.org/packages/")) t)
+       ;; (add-to-list 'package-archives (cons "melpa-stable" (concat proto "://stable.melpa.org/packages/")) t)
+       (add-to-list 'package-archives (cons "org" (concat proto "://orgmode.org/elpa/")) t)
+       (when (< emacs-major-version 24)
+	 ;; For important compatibility libraries like cl-lib
+	 (add-to-list 'package-archives '("gnu" . (concat proto "://elpa.gnu.org/packages/")))))
+     (package-initialize)
+   #+END_SRC
+
+** use-package
+
+   If [[https://github.com/jwiegley/use-package][use-package]] is not installed, install it from the ELPA.
+
+   #+BEGIN_SRC emacs-lisp
+     (unless (package-installed-p 'use-package)
+       (package-refresh-contents)
+       (package-install 'use-package))
+   #+END_SRC
+
+** My own fuctions & macros
+
+   #+BEGIN_SRC emacs-lisp
+     (defmacro when-linux (&rest body)
+       (list 'if (string-match "linux" (prin1-to-string system-type))
+		     (cons 'progn body)))
+
+     (defmacro when-windows (&rest body)
+       (list 'if (string-match "windows" (prin1-to-string system-type))
+	     (cons 'progn body)))
+
+     (defmacro when-mac (&rest body)
+       (list 'if (string-match "darwin" (prin1-to-string system-type))
+	     (cons 'progn body)))
+   #+END_SRC
+
+** Input method & coding system
+
+   I need this configuration.
+
+   #+BEGIN_SRC emacs-lisp
+     (when enable-multibyte-characters
+       (set-language-environment "Korean")
+       (setq-default file-name-coding-system 'utf-8)
+       (setq default-input-method "korean-hangul")
+       (prefer-coding-system 'utf-8)
+       (set-default-coding-systems 'utf-8))
+
+     (when-mac (require 'ucs-normalize)
+	       (set-file-name-coding-system 'utf-8-hfs)
+	       (setq default-process-coding-system '(utf-8-hfs . utf-8-hfs)))
+
+     (when-windows (set-file-name-coding-system 'euc-kr)
+		   (global-set-key (kbd "S-SPC") 'toggle-input-method)
+		   (global-set-key (kbd "<Hangul>") 'toggle-input-method)
+		   (global-set-key (kbd "<Hangul_Hanja>") 'hangul-to-hanja-conversion))
+   #+END_SRC
+
+
+** Load a custom file
+
+   If the file =~/.emacs.d/custom.el= exist, load it.
+
+   #+BEGIN_SRC emacs-lisp
+     (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+     (when (file-exists-p custom-file)
+       (load custom-file))
+   #+END_SRC
+
+
+** Helm
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package helm
+       :ensure t
+       :diminish helm-mode
+       :init
+       (progn
+	 (require 'helm-config)
+	 (setq helm-M-x-requires-pattern nil
+	       helm-split-window-inside-p t ; open helm buffer inside
+					     ; current window, not occupy
+					     ; whole other window
+	       helm-move-to-line-cycle-in-source  t ; move to end or
+					     ; beginning of source
+					     ; when reaching top or
+					     ; bottom of source.
+	       helm-ff-search-library-in-sexp t ; search for library in
+					     ; `require' and
+					     ; `declare-function' sexp.
+	       helm-scroll-amount 8 ; scroll 8 lines other window using
+					     ; M-<next>/M-<prior>
+	       helm-ff-file-name-history-use-recentf t)
+	 (helm-mode))
+       :bind (("C-c h" . helm-command-prefix)
+	      ("C-x C-f" . helm-find-files)
+	      ("C-x b" . helm-buffers-list)
+	      ("C-x C-b" . helm-buffers-list)
+	      ("C-x c y" . helm-yas-complete)
+	      ("C-x c Y" . helm-yas-create-snippet-on-region)
+	      ("M-y" . helm-show-kill-ring)
+	      ("M-x" . helm-M-x)
+	      ;; ("C-i" . helm-execute-persistent-action)
+	      ;; ("C-z" . helm-select-action)
+	      ))
+
+     (use-package helm-descbinds
+       :ensure t
+       :defer 7
+       :bind (("C-h b" . helm-descbinds)))
+   #+END_SRC
+
+
+* Appearance
+
+** Basic appearance
+   Hide =tool-bar= and =scroll-bar=.
+
+   #+BEGIN_SRC emacs-lisp
+     (mapc
+      (lambda (mode)
+	(if (fboundp mode)
+	    (funcall mode -1)))
+      '(tool-bar-mode scroll-bar-mode))
+   #+END_SRC
+
+** Font setting
+
+   #+BEGIN_SRC emacs-lisp
+     (when (display-graphic-p)
+       (require 'fontutil)
+
+       (when-linux (fontutil/set-font "ubuntu-14")
+		   (setq-default line-spacing 4))
+
+       (when-mac (fontutil/set-font "firacode-14")
+		 (setq-default line-spacing 3))
+
+       (when-windows (fontutil/set-font "d2coding-14")
+		     (setq-default line-spacing 4)))
+   #+END_SRC
+
+** doom-themes
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package doom-themes
+       :ensure t
+       :init (load-theme 'doom-one t)
+       :config
+       (setq doom-themes-enable-bold t
+	     doom-themes-enable-italic t)
+       (doom-themes-visual-bell-config)
+       (doom-themes-neotree-config)
+       (doom-themes-org-config))
+   #+END_SRC
+
+** dome-modeline
+   This package requires the fonts included with =all-the-icons= to be
+   installed. Run ~M-x all-the-icons-install-fonts~ to do so.
+   
+   #+BEGIN_SRC emacs-lisp
+     (use-package doom-modeline
+       :ensure t
+       :defer t
+       :hook (after-init . doom-modeline-init))
+   #+END_SRC
+
+
+* Programming
+
+** lsp-mode
+   A mode for Language Server Protocol
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package lsp-mode
+       :ensure t)
+   #+END_SRC
+
+** magit
+   I need this definitly. This is an awesome plugin as git client.
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package magit
+       :ensure t
+       :commands (magit-init
+		  magit-status)
+       :bind ("C-x g" . magit-status))
+   #+END_SRC
+
+** projectile
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package projectile
+       :ensure t
+       :config
+       (projectile-mode)
+       (setq projectile-enable-caching t)
+       (setq projectile-indexing-method 'alien)
+       ;; https://github.com/bbatsov/projectile/issues/1183
+       )
+   #+END_SRC
