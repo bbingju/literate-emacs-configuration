@@ -1,14 +1,24 @@
+#+STARTUP: overview
 #+TITLE: My Literate Emacs Configuration
 #+AUTHOR: Phil Hwang
 
-* How to use it
-
+* COMMENT How to use it
   #+BEGIN_SRC sh
     cd
     git clone https://github.com/bbingju/literate-emacs-configuration.git .emacs.d
   #+END_SRC
 
 * First of All
+
+** Speed-up at startup
+   #+BEGIN_SRC emacs-lisp
+     (let* ((normal-gc-cons-threshold (* 20 1024 1024))
+	    (init-gc-cons-threshold (* 128 1024 1024)))
+       (setq gc-cons-threshold init-gc-cons-threshold)
+       (add-hook 'emacs-startup-hook
+		 (lambda () (setq gc-cons-threshold normal-gc-cons-threshold))))
+   #+END_SRC
+
 ** Add load-path
 
    #+BEGIN_SRC emacs-lisp
@@ -79,9 +89,7 @@
 		   (global-set-key (kbd "<Hangul_Hanja>") 'hangul-to-hanja-conversion))
    #+END_SRC
 
-
 ** Load a custom file
-
    If the file =~/.emacs.d/custom.el= exist, load it.
 
    #+BEGIN_SRC emacs-lisp
@@ -90,9 +98,7 @@
        (load custom-file))
    #+END_SRC
 
-
 ** Helm
-
    #+BEGIN_SRC emacs-lisp
      (use-package helm
        :ensure t
@@ -133,6 +139,28 @@
        :bind (("C-h b" . helm-descbinds)))
    #+END_SRC
 
+   #+BEGIN_SRC emacs-lisp
+     (use-package helm-swoop
+       :ensure t
+       :bind (("C-S-s" . helm-swoop)
+	      ("M-i" . helm-swoop)
+	      ("M-s s" . helm-swoop)
+	      ("M-s M-s" . helm-swoop)
+	      ("M-I" . helm-swoop-back-to-last-point)
+	      ("C-c M-i" . helm-multi-swoop)
+	      ("C-x M-i" . helm-multi-swoop-all)
+	      ("M-i" . helm-multi-swoop-all-from-helm-swoop)
+	      :map isearch-mode-map
+	      ("M-i" . helm-swoop-from-isearch)))
+   #+END_SRC
+
+   The default =C-x c= is quite close to =C-x C-c=, which quits Emacs.
+   Changed to =C-c h=. Note: We must set =C-c h= globally, because we
+   cannot change `helm-command-prefix-key' once `helm-config' is loaded.
+   #+BEGIN_SRC emacs-lisp
+     (global-set-key (kbd "C-c h") 'helm-command-prefix)
+     (global-unset-key (kbd "C-x c"))
+   #+END_SRC
 
 * Appearance
 
@@ -188,6 +216,11 @@
        :hook (after-init . doom-modeline-init))
    #+END_SRC
 
+** line numbers
+   #+BEGIN_SRC emacs-lisp
+     (use-package display-line-numbers-mode
+       :hook prog-mode)
+   #+END_SRC
 
 * Orgmode
   #+BEGIN_SRC emacs-lisp
@@ -207,6 +240,7 @@
 
       :config
       (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
+							       (python . t)
 							       (ditaa . t)
 							       (emacs-lisp . t)))
       (set-register ?l `(cons 'file ,(concat org-directory "/links.org")))
@@ -238,8 +272,43 @@
       :hook (org-mode . (lambda () (org-bullets-mode 1))))
   #+END_SRC
 
-
 * Programming
+
+** projectile
+   #+BEGIN_SRC emacs-lisp
+     (use-package projectile
+       :ensure t
+       :config
+       (projectile-mode)
+       (setq projectile-enable-caching t)
+       (setq projectile-indexing-method 'alien) ;; https://github.com/bbatsov/projectile/issues/1183
+       (setq projectile-completion-system 'helm)
+       (projectile-mode +1))
+   #+END_SRC
+
+** helm-projectile
+   #+BEGIN_SRC emacs-lisp
+     (use-package helm-projectile
+       :ensure t
+       :requires (helm projectile)
+       :config (helm-projectile-on))
+   #+END_SRC
+
+** helm-gtags
+   #+BEGIN_SRC emacs-lisp
+     (use-package helm-gtags
+       :ensure t
+       :bind (:map helm-gtags-mode-map
+		   ("M-." . helm-gtags-find-tag)
+		   ("M-r" . helm-gtags-find-rtag)
+		   ("M-s" . helm-gtags-find-symbol)
+		   ("M-g M-p" . helm-gtags-parse-file)
+		   ("C-c <" . helm-gtags-previous-history)
+		   ("C-c >" . helm-gtags-next-history)
+		   ("M-," . helm-gtags-pop-stack))
+       :config (setq helm-gtags-path-style 'relative)
+       :hook ((c-mode c++-mode asm-mode) . helm-gtags-mode))
+   #+END_SRC
 
 ** magit
    I need this definitly. This is an awesome plugin as git client.
@@ -250,6 +319,27 @@
        :commands (magit-init
 		  magit-status)
        :bind ("C-x g" . magit-status))
+   #+END_SRC
+
+** diff-hl
+   #+BEGIN_SRC emacs-lisp
+     (use-package diff-hl
+       :ensure t
+       :init (global-diff-hl-mode)
+       :config
+       (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh))
+   #+END_SRC
+
+** Yasnippet
+   #+BEGIN_SRC emacs-lisp
+     (use-package yasnippet
+       :defer 5
+       :diminish yas-minor-mode
+       :config (yas-global-mode 1))
+
+     (use-package yasnippet-snippets
+       :ensure t
+       :after yasnippet)
    #+END_SRC
 
 ** company
@@ -280,20 +370,8 @@
    #+BEGIN_SRC emacs-lisp
      (use-package eglot
        :ensure t
-       :init (add-to-list 'eglot-server-programs '((c++-mode c-mode) "clangd"))
+       :config (add-to-list 'eglot-server-programs '((c++-mode c-mode) "clangd"))
        :hook ((c-mode c++mode) . eglot-ensure))
-   #+END_SRC
-
-** projectile
-   #+BEGIN_SRC emacs-lisp
-     (use-package projectile
-       :ensure t
-       :config
-       (projectile-mode)
-       (setq projectile-enable-caching t)
-       (setq projectile-indexing-method 'alien)
-       ;; https://github.com/bbatsov/projectile/issues/1183
-       )
    #+END_SRC
 
 ** Python
@@ -327,7 +405,7 @@
        :ensure t)
    #+END_SRC
 
-** elisp
+** Emacs Lisp
    #+BEGIN_SRC emacs-lisp
      (use-package elisp-mode
        :init
@@ -351,3 +429,38 @@
        :ensure t
        :hook ((emacs-lisp-mode ielm-mode) . rainbow-delimiters-mode))
    #+END_SRC
+
+* graphviz-dot-mode
+  #+BEGIN_SRC emacs-lisp
+    (use-package graphviz-dot-mode
+      :mode ("\\.dot\\'" . graphviz-dot-mode)
+      :init
+      (autoload 'graphviz-dot-mode "graphviz-dot-mode" "graphviz-dot Editing Mode" t))
+  #+END_SRC
+
+* gnuplot-mode
+  #+BEGIN_SRC emacs-lisp
+    (use-package gnuplot-mode
+      :mode ("\\.plt\\'" . gnuplot-mode)
+      :config (when-windows (setq gnuplot-program "c:/pkg/gnuplot/bin/gnuplot.exe")))
+  #+END_SRC
+
+* markdown-mode
+  #+BEGIN_SRC emacs-lisp
+    (use-package markdown-mode
+      :ensure t
+      :mode ("\\.md\\'" . markdown-mode)
+      :init
+      (autoload 'markdown-mode "markdown-mode" "Major mode for editing Markdown files" t))
+  #+END_SRC
+
+* [[http://jblevins.org/projects/deft/][Deft]]
+  #+BEGIN_SRC emacs-lisp
+    (use-package deft
+      :ensure t
+      :bind ("<f9>" . deft)
+      :config (setq deft-extensions '("org" "md" "txt")
+		    deft-directory "~/Dropbox/wiki"
+		    deft-auto-save-interval 0
+		    deft-text-mode 'org-mode))
+  #+END_SRC
