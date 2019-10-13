@@ -1,6 +1,10 @@
+# -*- encoding:utf-8;  -*- ---
 #+STARTUP: overview
 #+TITLE: My Literate Emacs Configuration
 #+AUTHOR: Phil Hwang
+
+[[https://melpa.org/#/literate-elisp][file:https://melpa.org/packages/literate-elisp-badge.svg]]
+[[https://stable.melpa.org/#/literate-elisp][file:https://stable.melpa.org/packages/literate-elisp-badge.svg]]
 
 * COMMENT How to use it
   #+BEGIN_SRC sh
