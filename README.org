@@ -71,6 +71,12 @@
 	     (cons 'progn body)))
    #+END_SRC
 
+** Add a path to Environment Variable
+   #+BEGIN_SRC emacs-lisp
+     (when-mac (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
+	       (setq exec-path (append exec-path '("/usr/local/bin"))))
+   #+END_SRC
+
 ** Input method & coding system
 
    I need this configuration.
