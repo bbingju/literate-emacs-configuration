@@ -293,12 +293,12 @@
      (use-package projectile
 	    :ensure t
 	    :requires (helm)
+	    :bind (:map projectile-mode-map
+			("C-c p" . 'projectile-command-map))
 	    :config
 	    (setq projectile-enable-caching t
 		  projectile-indexing-method 'alien
 		  projectile-completion-system 'helm)
-	    ;; (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-	    (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 	    (projectile-mode +1))
    #+END_SRC
 
