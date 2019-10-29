@@ -378,12 +378,14 @@
    #+END_SRC
 
 ** lsp-mode
-   A mode for Language Server Protocol
+   A mode for Language Server Protocol.
+
+   sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-language-server][bash-language-server]]를 먼저 설치해야한다.
 
    #+BEGIN_SRC emacs-lisp
      (use-package lsp-mode
        :ensure t
-       :hook ((python-mode c-mode c++-mode arduino-mode company-mode) . lsp)
+       :hook ((python-mode c-mode c++-mode arduino-mode sh-mode company-mode) . lsp)
        :commands lsp)
 
      (use-package company-lsp
