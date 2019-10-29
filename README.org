@@ -1,4 +1,4 @@
-# -*- encoding:utf-8;  -*- ---
+# -*- mode: org; -*-
 #+STARTUP: overview
 #+TITLE: My Literate Emacs Configuration
 #+AUTHOR: Phil Hwang
