@@ -394,6 +394,13 @@
        :hook ((c-mode c++mode) . eglot-ensure))
    #+END_SRC
 
+** Arduino
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package arduino-mode
+       :ensure t)
+   #+END_SRC
+
 ** Python
    먼저 [[https://github.com/palantir/python-language-server][Python Language Server]]를 설치해야 한다.
 
