@@ -195,7 +195,7 @@
      (when (display-graphic-p)
        (require 'fontutil)
 
-       (when-linux (fontutil/set-font "ubuntu-14")
+       (when-linux (fontutil/set-font "ubuntu-16")
 		   (setq-default line-spacing 4))
 
        (when-mac (fontutil/set-font "firacode-14")
