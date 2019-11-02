@@ -420,14 +420,13 @@
    #+BEGIN_SRC emacs-lisp
      (use-package python
        :mode ("\\.py\\'" . python-mode)
-       :interpreter ("python3" . python-mode)
-       :config
-       (elpy-enable))
+       :interpreter ("python3" . python-mode))
 
      (use-package elpy
        :ensure t
+       :defer t
        :init
-       (add-to-list 'auto-mode-alist '("\\.py$" . python-mode))
+       (advice-add 'python-mode :before 'elpy-enable)
        :config
        (setq elpy-rpc-python-command "python3")
        (setq python-shell-interpreter "python3")
