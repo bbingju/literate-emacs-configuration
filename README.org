@@ -385,7 +385,7 @@
    #+BEGIN_SRC emacs-lisp
      (use-package lsp-mode
        :ensure t
-       :hook ((python-mode c-mode c++-mode arduino-mode sh-mode company-mode) . lsp)
+       :hook ((c-mode c++-mode arduino-mode sh-mode company-mode) . lsp)
        :commands lsp)
 
      (use-package company-lsp
