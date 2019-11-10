@@ -314,7 +314,7 @@
        :config (helm-projectile-on))
    #+END_SRC
 
-** helm-gtags
+** COMMENT helm-gtags
    #+BEGIN_SRC emacs-lisp
      (use-package helm-gtags
        :ensure t
