@@ -1,7 +1,7 @@
 # -*- mode: gitignore; -*-
 
 README.el
-custom.el
+.custom.el
 ede-projects.el
 projectile-bookmarks.eld
 projectile.cache

@@ -98,16 +98,16 @@
    MacOS 일 경우, 파일시스템에서 한글이 제대로 나오게 하기 위해서 아래와 같이 설정한다.
 
    #+BEGIN_SRC emacs-lisp
-	  (when-mac (require 'ucs-normalize)
-		    (set-file-name-coding-system 'utf-8-hfs)
-		    (setq default-process-coding-system '(utf-8-hfs . utf-8-hfs)))
+     (when-mac (require 'ucs-normalize)
+	       (set-file-name-coding-system 'utf-8-hfs)
+	       (setq default-process-coding-system '(utf-8-hfs . utf-8-hfs)))
    #+END_SRC
 
 ** Load a custom file
-   If the file =~/.emacs.d/custom.el= exist, load it.
+   If the file =~/.emacs.d/.custom.el= exist, load it.
 
    #+BEGIN_SRC emacs-lisp
-     (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+     (setq custom-file (expand-file-name ".custom.el" user-emacs-directory))
      (when (file-exists-p custom-file)
        (load custom-file))
    #+END_SRC
