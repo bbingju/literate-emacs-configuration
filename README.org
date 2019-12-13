@@ -392,7 +392,7 @@
    #+BEGIN_SRC emacs-lisp
      (use-package lsp-mode
        :ensure t
-       :hook ((c-mode c++-mode arduino-mode sh-mode company-mode) . lsp)
+       :hook ((c-mode c++-mode arduino-mode sh-mode company-mode) . lsp-mode)
        :commands lsp)
 
      (use-package company-lsp
@@ -407,11 +407,14 @@
    #+BEGIN_SRC emacs-lisp
      (use-package ccls
        :ensure t
-       :hook ((c-mode c++-mode arduino-mode) . (lambda () (require 'ccls) (lsp)))
-       :config
-       (setq ccls-executable "~/.local/bin/ccls"
-	     lsp-prefer-flymake nil)
-       (setq-default flycheck-disabled-checkers '(c/c++-clang c/c++-cppcheck c/c++-gcc)))
+       )
+   #+END_SRC
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package clang-format
+       :ensure t
+       :bind (:map c-mode-base-map
+		   ("C-M-\\" . clang-format-region)))
    #+END_SRC
 
 ** Arduino
