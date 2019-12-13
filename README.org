@@ -373,7 +373,14 @@
    #+BEGIN_SRC emacs-lisp
      (use-package company
        :ensure t
-       :bind ("C-M-i" . company-complete)
+       :bind (("C-M-i" . company-complete)
+	      :map company-active-map
+	      ("C-n" . company-select-next)
+	      ("C-p" . company-select-previous)
+	      ("<tab>" . company-complete-common-or-cycle)
+	      :map company-search-map
+	      ("C-n" . company-select-next)
+	      ("C-p" . company-select-previous))
        :init (add-hook 'after-init-hook `global-company-mode))
    #+END_SRC
 
