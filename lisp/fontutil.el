@@ -1,4 +1,4 @@
-;; -*-emacs-lisp-*-
+;; -*- mode: emacs-lisp -*-
 
 ;;;
 ;;; Font-related configuration
@@ -108,34 +108,37 @@ See `fontutil/fontconfig' for the definition of SPECS."
      ("scodepro-18" . (((:family "Source Code Pro" :size 18)
                         (hangul :family "D2Coding" :size 22)
                         (symbol :family "Symbola" :size 24))))
-     ("ubuntu-14" . (((:family "UbuntuMono" :size 14)
+     ("ubuntu-14" . (((:family "Ubuntu Mono" :size 14)
                         (hangul :family "D2Coding" :size 14)
                         (symbol :family "Symbola" :size 15))
                      ((line-spacing . 3))))
-     ("ubuntu-15" . (((:family "UbuntuMono" :size 15)
+     ("ubuntu-15" . (((:family "Ubuntu Mono" :size 15)
                         (hangul :family "D2Coding" :size 15)
                         (symbol :family "Symbola" :size 16))
                      ((line-spacing . 4))))
-     ("ubuntu-16" . (((:family "UbuntuMono" :size 16)
-                        (hangul :family "D2Coding" :size 16)
-                        (symbol :family "Symbola" :size 17))
+     ("ubuntu-16" . (((:family "Ubuntu Mono" :size 16)
+                        (hangul :family "Noto Sans Mono CJK KR" :size 16)
+                        (symbol :family "Noto Color Emoji" :size 17))
                      ((line-spacing . 4))))
-     ("ubuntu-18" . (((:family "UbuntuMono" :size 18)
+     ("ubuntu-18" . (((:family "Ubuntu Mono" :size 18)
                         (hangul :family "D2Coding" :size 18)
                         (symbol :family "Symbola" :size 20))
                      ((line-spacing . 4))))
 
-     ("ubuntu-20" . (((:family "UbuntuMono" :size 20)
+     ("ubuntu-20" . (((:family "Ubuntu Mono" :size 20)
                         (hangul :family "D2Coding" :size 20)
                         (symbol :family "Symbola" :size 22))
                      ((line-spacing . 4))))
 
-     ("nova-16" . (((:family "NovaMono" :size 16)
-                        (hangul :family "D2Coding" :size 18)
-                        (symbol :family "Symbola" :size 20))))
-     ("nova-18" . (((:family "NovaMono" :size 18)
-                        (hangul :family "D2Coding" :size 20)
-                        (symbol :family "Symbola" :size 22))))
+     ("noto-15" . (((:family "Noto Mono" :size 15)
+                    (hangul :family "Noto Sans Mono CJK KR" :size 15)
+                    (symbol :family "Noto Color Emoji" :size 17))
+                   ((line-spacing . 4))))
+
+     ("noto-16" . (((:family "Noto Mono" :size 16)
+                    (hangul :family "Noto Sans Mono CJK KR" :size 16)
+                    (symbol :family "Noto Color Emoji" :size 18))
+                   ((line-spacing . 4))))
 
      ("inconsolata-14" . (((:family "Inconsolata" :size 14)
                            (hangul :family "D2Coding" :size 14)
