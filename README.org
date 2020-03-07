@@ -195,8 +195,7 @@
      (when (display-graphic-p)
        (require 'fontutil)
 
-       (when-linux (fontutil/set-font "ubuntu-16")
-		   (setq-default line-spacing 4))
+       (when-linux (fontutil/set-font "ubuntu-16"))
 
        (when-mac (fontutil/set-font "firacode-14")
 		 (setq-default line-spacing 3))
@@ -354,7 +353,9 @@
    #+BEGIN_SRC emacs-lisp
      (use-package flycheck
        :ensure t
-       :init (global-flycheck-mode))
+       :hook (after-init . global-flycheck-mode)
+       :config
+       (setq flycheck-check-syntax-automatically '(save idle-change mode-enabled)))
    #+END_SRC
 
 ** Yasnippet
@@ -395,10 +396,24 @@
        :hook ((c-mode c++-mode arduino-mode sh-mode company-mode) . lsp-mode)
        :commands lsp)
 
+     (use-package lsp-ui
+       :ensure t
+       :commands lsp-ui-mode)
+
      (use-package company-lsp
        :ensure t
        :commands company-lsp
        :config (push 'company-lsp company-backends))
+
+     (use-package helm-lsp
+       :ensure t
+       :commands helm-lsp-workspace-symbol)
+   #+END_SRC
+
+   #+BEGIN_SRC emacs-lisp
+     (setq company-transformers nil
+	   company-lsp-async t
+	   company-lsp-cache-candidates nil)
    #+END_SRC
 
 ** C/C++
@@ -407,6 +422,12 @@
    #+BEGIN_SRC emacs-lisp
      (use-package ccls
        :ensure t
+       :hook ((c-mode c++-mode) . (lambda () (require 'ccls) (lsp)))
+       ;; :config
+       ;; (setq ccls-executable "~/.local/bin/ccls"
+       ;;       lsp-prefer-flymake nil)
+       ;; (setq-default flycheck-disabled-checkers '(c/c++-clang c/c++-cppcheck c/c++-gcc))
+       ;; (setq-default flycheck-disabled-checkers '(c/c++-cppcheck))
        )
    #+END_SRC
 
@@ -479,6 +500,38 @@
        :hook ((emacs-lisp-mode ielm-mode) . rainbow-delimiters-mode))
    #+END_SRC
 
+** Configurations for Qt5
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package qml-mode
+       :ensure t)
+   #+END_SRC
+
+** YAML
+   #+BEGIN_SRC emacs-lisp
+     (use-package yaml-mode
+       :ensure t)
+   #+END_SRC
+
+* Docker
+
+  #+BEGIN_SRC emacs-lisp
+    (use-package dockerfile-mode
+      :ensure t
+      :mode ("Dockerfile\\'" . dockerfile-mode))
+  #+END_SRC
+
+  #+BEGIN_SRC emacs-lisp
+    (use-package docker-compose-mode
+      :ensure t)
+  #+END_SRC
+
+  #+BEGIN_SRC emacs-lisp
+    (use-package docker
+      :ensure t
+      :bind ("C-c d" . docker))
+  #+END_SRC
+
 * graphviz-dot-mode
   #+BEGIN_SRC emacs-lisp
     (use-package graphviz-dot-mode
@@ -513,3 +566,15 @@
 		    deft-auto-save-interval 0
 		    deft-text-mode 'org-mode))
   #+END_SRC
+* Tools
+** Google Translater
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package google-translate
+       :ensure t
+       :bind ("M-o t" . google-translate-at-point)
+       ("M-o T" . google-translate-at-point-reverse)
+       :custom
+       (google-translate-default-source-language "en")
+       (google-translate-default-target-language "ko"))
+   #+END_SRC
