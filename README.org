@@ -176,6 +176,14 @@
      (global-unset-key (kbd "C-x c"))
    #+END_SRC
 
+** Others
+
+   #+begin_src emacs-lisp
+     (use-package which-key
+       :ensure t
+       :config (which-key-mode))
+   #+end_src
+
 * Appearance
 
 ** Basic appearance
