@@ -401,7 +401,7 @@
    #+BEGIN_SRC emacs-lisp
      (use-package lsp-mode
        :ensure t
-       :hook ((c-mode c++-mode arduino-mode sh-mode company-mode) . lsp-mode)
+       :hook ((lsp-mode . lsp-enable-which-key-integration))
        :commands lsp)
 
      (use-package lsp-ui
@@ -412,6 +412,11 @@
        :ensure t
        :commands company-lsp
        :config (push 'company-lsp company-backends))
+
+     (use-package ccls
+       :hook ((c-mode c++-mode sh-mode) .
+	      (lambda () (require 'ccls) (lsp)))
+       :config (setq ccls-executable "~/.local/bin/ccls"))
 
      (use-package helm-lsp
        :ensure t
@@ -426,18 +431,6 @@
 
 ** C/C++
    먼저 llvm을 설치해야한다.
-
-   #+BEGIN_SRC emacs-lisp
-     (use-package ccls
-       :ensure t
-       :hook ((c-mode c++-mode) . (lambda () (require 'ccls) (lsp)))
-       ;; :config
-       ;; (setq ccls-executable "~/.local/bin/ccls"
-       ;;       lsp-prefer-flymake nil)
-       ;; (setq-default flycheck-disabled-checkers '(c/c++-clang c/c++-cppcheck c/c++-gcc))
-       ;; (setq-default flycheck-disabled-checkers '(c/c++-cppcheck))
-       )
-   #+END_SRC
 
    #+BEGIN_SRC emacs-lisp
      (use-package clang-format
