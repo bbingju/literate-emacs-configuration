@@ -414,7 +414,8 @@
        :config (push 'company-lsp company-backends))
 
      (use-package ccls
-       :hook ((c-mode c++-mode sh-mode) .
+       :ensure t
+       :hook ((c-mode c++-mode objc-mode sh-mode) .
 	      (lambda () (require 'ccls) (lsp)))
        :config (setq ccls-executable "~/.local/bin/ccls"))
 
