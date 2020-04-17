@@ -140,6 +140,16 @@ See `fontutil/fontconfig' for the definition of SPECS."
                     (symbol :family "Noto Color Emoji" :size 18))
                    ((line-spacing . 4))))
 
+     ("dejavu-28" . (((:family "Dejavu Sans Mono" :size 28)
+                      (hangul :family "Noto Sans Mono CJK KR" :size 28)
+                      (symbol :family "Noto Color Emoji" :size 28))
+                     ((line-spacing . 5))))
+
+     ("dejavu-32" . (((:family "Dejavu Sans Mono" :size 32)
+                      (hangul :family "Noto Sans Mono CJK KR" :size 32)
+                      (symbol :family "Noto Color Emoji" :size 32))
+                     ((line-spacing . 5))))
+
      ("inconsolata-14" . (((:family "Inconsolata" :size 14)
                            (hangul :family "D2Coding" :size 14)
                            (symbol :family "Symbola" :size 15))
