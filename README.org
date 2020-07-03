@@ -103,6 +103,29 @@
 	       (setq default-process-coding-system '(utf-8-hfs . utf-8-hfs)))
    #+END_SRC
 
+** File-related tweaks
+   #+begin_src emacs-lisp
+     (use-package files
+       :ensure nil
+       :config
+       (setq confirm-kill-processes nil
+	     make-backup-files nil))
+   #+end_src
+
+** Automatically refreshes the buffer for changes outside of emacs
+   Auto refreshes every 3 seconds.
+
+   #+begin_src emacs-lisp
+     (use-package autorevert
+       :ensure nil
+       :config
+       (global-auto-revert-mode +1)
+       (setq auto-revert-interval 3
+	     auto-revert-check-vc-info t
+	     auto-revert-non-file-buffers t
+	     auto-revert-verbose nil))
+   #+end_src
+
 ** Load a custom file
    If the file =~/.emacs.d/.custom.el= exist, load it.
 
