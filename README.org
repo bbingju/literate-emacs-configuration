@@ -95,7 +95,7 @@
 		   (global-set-key (kbd "<Hangul_Hanja>") 'hangul-to-hanja-conversion))
    #+END_SRC
 
-   MacOS 일 경우, 파일시스템에서 한글이 제대로 나오게 하기 위해서 아래와 같이 설정한다.
+   MacOS 일 경우, 파일시스템에서 한글이 제대로 나오게 하기 위해서 아래와 같이 설정한다.
 
    #+BEGIN_SRC emacs-lisp
      (when-mac (require 'ucs-normalize)
@@ -325,15 +325,15 @@
 
    #+BEGIN_SRC emacs-lisp
      (use-package projectile
-	    :ensure t
-	    :requires (helm)
-	    :bind (:map projectile-mode-map
-			("C-c p" . 'projectile-command-map))
-	    :config
-	    (setq projectile-enable-caching t
-		  projectile-indexing-method 'alien
-		  projectile-completion-system 'helm)
-	    (projectile-mode +1))
+       :ensure t
+       :requires (helm)
+       :bind (:map projectile-mode-map
+		   ("C-c p" . 'projectile-command-map))
+       :config
+       (setq projectile-enable-caching t
+	     projectile-indexing-method 'alien
+	     projectile-completion-system 'helm)
+       (projectile-mode +1))
    #+END_SRC
 
 ** helm-projectile
