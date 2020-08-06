@@ -422,19 +422,22 @@
    sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-language-server][bash-language-server]]를 먼저 설치해야한다.
 
    #+BEGIN_SRC emacs-lisp
+     (setq lsp-keymap-prefix "C-c l")
+
      (use-package lsp-mode
        :ensure t
        :hook ((lsp-mode . lsp-enable-which-key-integration))
+       :custom (lsp-enable-on-type-formatting nil)
        :commands lsp)
 
      (use-package lsp-ui
        :ensure t
        :commands lsp-ui-mode)
 
-     (use-package company-lsp
-       :ensure t
-       :commands company-lsp
-       :config (push 'company-lsp company-backends))
+     ;; (use-package company-lsp
+     ;;   :ensure t
+     ;;   :commands company-lsp
+     ;;   :config (push 'company-lsp company-backends))
 
      (use-package ccls
        :ensure t
@@ -452,12 +455,21 @@
    #+END_SRC
 
    #+BEGIN_SRC emacs-lisp
-     (setq company-transformers nil
-	   company-lsp-async t
-	   company-lsp-cache-candidates nil)
+     ;; (setq company-transformers nil
+	   ;; company-lsp-async t
+	   ;; company-lsp-cache-candidates nil)
    #+END_SRC
 
 ** C/C++
+
+   #+BEGIN_SRC emacs-lisp
+     (c-add-style "my-c-style"
+		  '("linux"
+		    (c-basic-offset . 4)))
+
+     (setq c-default-style "my-c-style")
+   #+END_SRC
+
    먼저 llvm을 설치해야한다.
 
    #+BEGIN_SRC emacs-lisp
