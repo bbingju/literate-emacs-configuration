@@ -619,3 +619,11 @@
        (google-translate-default-source-language "en")
        (google-translate-default-target-language "ko"))
    #+END_SRC
+
+** rfc-mode
+
+   #+begin_src emacs-lisp
+     (use-package rfc-mode
+       :ensure t
+       :init (setq rfc-mode-directory (expand-file-name "~/Dropbox/ref/rfc/")))
+   #+end_src
