@@ -316,6 +316,12 @@
       :hook (org-mode . (lambda () (org-bullets-mode 1))))
   #+END_SRC
 
+  Override line-numbers-mode in org-mode.
+
+  #+begin_src emacs-lisp
+    (add-hook 'org-mode-hook (lambda () (display-line-numbers-mode 0)))
+  #+end_src
+
 * Programming
 
 ** projectile
