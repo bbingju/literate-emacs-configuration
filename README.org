@@ -274,7 +274,8 @@
       :init (setq org-directory my-org-directory
 		  org-agenda-files my-org-agenda-files
 		  org-default-notes-file (concat org-directory "/notes.org")
-		  org-export-coding-system 'utf-8)
+		  org-export-coding-system 'utf-8
+		  org-confirm-babel-evaluate nil)
 
       :mode (("\\.org\\'" . org-mode))
 
