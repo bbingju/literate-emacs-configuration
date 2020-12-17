@@ -202,6 +202,12 @@
 ** Others
 
    #+begin_src emacs-lisp
+     (global-set-key (kbd "M-u") 'upcase-dwim)
+     (global-set-key (kbd "M-l") 'downcase-dwim)
+     (global-set-key (kbd "M-c") 'capitalize-dwim)
+   #+end_src
+
+   #+begin_src emacs-lisp
      (use-package which-key
        :ensure t
        :config (which-key-mode))
