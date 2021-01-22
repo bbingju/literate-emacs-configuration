@@ -635,5 +635,5 @@
    #+begin_src emacs-lisp
      (use-package rfc-mode
        :ensure t
-       :init (setq rfc-mode-directory (expand-file-name "~/Dropbox/ref/rfc/")))
+       :init (setq rfc-mode-directory (expand-file-name "~/Dropbox/resources/rfc/")))
    #+end_src
