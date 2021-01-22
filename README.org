@@ -311,7 +311,11 @@
 	       "http://rss.slashdot.org/Slashdot/slashdot"
 	       (concat org-directory "/feeds.org")
 	       "Slashdot Entries")))
-      )
+
+      (with-eval-after-load 'ox-latex
+	(add-to-list 'org-latex-classes
+		     '("xoblivoir"
+		       "\\documentclass{xoblivoir}"))))
 
 
     (use-package org-bullets
