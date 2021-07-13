@@ -385,6 +385,14 @@
        :bind ("C-x g" . magit-status))
    #+END_SRC
 
+** Coding convention
+
+   #+begin_src emacs-lisp
+     (use-package editorconfig
+       :ensure t
+       :config (editorconfig-mode 1))
+   #+end_src
+
 ** diff-hl
    #+BEGIN_SRC emacs-lisp
      (use-package diff-hl
