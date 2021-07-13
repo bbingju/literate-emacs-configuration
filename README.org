@@ -230,15 +230,29 @@
 
    #+BEGIN_SRC emacs-lisp
      (when (display-graphic-p)
-       (require 'fontutil)
+       ;; (require 'fontutil)
 
-       (when-linux (fontutil/set-font "ubuntu-16"))
+       (set-face-attribute 'default nil :font "Cascadia Code PL")
+       (set-fontset-font t '(#X1200 . #Xa95f) '("D3Coding" . "unicode-bmp"))
+       (set-fontset-font t '(#Xac00 . #Xd7af) '("D3Coding" . "unicode-bmp"))
 
-       (when-mac (fontutil/set-font "firacode-14")
-		 (setq-default line-spacing 3))
+       (set-fontset-font t '(#X1100 . #X11ff) '("함초롬돋움" . "unicode-bmp"))
+       (set-fontset-font t '(#Xa960 . #Xa97c) '("함초롬돋움" . "unicode-bmp"))
+       (set-fontset-font t '(#Xd7b0 . #Xd7fb) '("함초롬돋움" . "unicode-bmp"))
+       (set-fontset-font t '(#Xe0bc . #Xefff) '("함초롬돋움" . "unicode-bmp"))
+       (set-fontset-font t '(#Xf100 . #Xf66e) '("함초롬돋움" . "unicode-bmp"))
 
-       (when-windows (fontutil/set-font "d2coding-14")
-		     (setq-default line-spacing 4)))
+       (set-fontset-font t 'han '("Noto Sans CJK KR" . "unicode-bmp"))
+       (setq line-spacing 4)
+       )
+	;; (when-linux (fontutil/set-font "cascadia-14")))
+
+       ;; (when-mac (fontutil/set-font "firacode-14")
+       ;;           (setq-default line-spacing 3))
+
+       ;; (when-windows (fontutil/set-font "d2coding-14")
+       ;;       	(setq-default line-spacing 4)))
+
    #+END_SRC
 
 ** doom-themes
