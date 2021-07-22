@@ -233,8 +233,8 @@
        ;; (require 'fontutil)
 
        (set-face-attribute 'default nil :font "Cascadia Code PL")
-       (set-fontset-font t '(#X1200 . #Xa95f) '("D3Coding" . "unicode-bmp"))
-       (set-fontset-font t '(#Xac00 . #Xd7af) '("D3Coding" . "unicode-bmp"))
+       (set-fontset-font t '(#X1200 . #Xa95f) '("D2Coding" . "unicode-bmp"))
+       (set-fontset-font t '(#Xac00 . #Xd7af) '("D2Coding" . "unicode-bmp"))
 
        (set-fontset-font t '(#X1100 . #X11ff) '("함초롬돋움" . "unicode-bmp"))
        (set-fontset-font t '(#Xa960 . #Xa97c) '("함초롬돋움" . "unicode-bmp"))
