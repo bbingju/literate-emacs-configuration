@@ -586,6 +586,22 @@
        :ensure t)
    #+END_SRC
 
+** Rust
+
+   #+begin_src emacs-lisp
+     (use-package rust-mode
+       :init (add-hook 'rust-mode-hook (lambda () (setq indent-tabs-mode nil)))
+
+       :bind (:map rust-mode-map
+		   ("C-c r" . rust-run)
+		   ("C-c t" . rust-test)
+		   ("C-c b" . cargo-process-build))
+       :config (setq rust-format-on-save t))
+
+     (use-package cargo
+       :hook (rust-mode . cargo-minor-mode))
+   #+end_src
+
    org-mode structure template에 python을 추가한다.
 
    #+BEGIN_SRC emacs-lisp
@@ -618,13 +634,6 @@
        :hook ((emacs-lisp-mode ielm-mode) . rainbow-delimiters-mode))
    #+END_SRC
 
-** Rust
-
-   #+begin_src emacs-lisp
-     (use-package rust-mode
-       :bind (:map rust-mode-map
-		   ("C-c r" . rust-run)))
-   #+end_src
 
 ** Configurations for Qt5
 
