@@ -588,6 +588,14 @@
        :hook ((emacs-lisp-mode ielm-mode) . rainbow-delimiters-mode))
    #+END_SRC
 
+** Rust
+
+   #+begin_src emacs-lisp
+     (use-package rust-mode
+       :bind (:map rust-mode-map
+		   ("C-c r" . rust-run)))
+   #+end_src
+
 ** Configurations for Qt5
 
    #+BEGIN_SRC emacs-lisp
