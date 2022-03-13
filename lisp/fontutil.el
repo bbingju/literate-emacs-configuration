@@ -128,6 +128,15 @@ See `fontutil/fontconfig' for the definition of SPECS."
                         (symbol :family "Symbola" :size 22))
                      ((line-spacing . 4))))
 
+     ("cascadia-14" . (((:family "Cascadia Code PL" :size 14)
+                        (hangul :family "Noto Sans Mono CJK KR" :size 16)
+                        (symbol :family "Cascadia Code PL" :size 14))
+                     ((line-spacing . 4))))
+     ("cascadia-16" . (((:family "Cascadia Code PL" :size 16)
+                        (hangul :family "D2Coding" :size 18)
+                        (symbol :family "Cascadia Code PL" :size 16))
+                     ((line-spacing . 4))))
+
      ("noto-15" . (((:family "Noto Mono" :size 15)
                     (hangul :family "Noto Sans Mono CJK KR" :size 15)
                     (symbol :family "Noto Color Emoji" :size 17))
