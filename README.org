@@ -23,6 +23,12 @@
 		 (lambda () (setq gc-cons-threshold normal-gc-cons-threshold))))
    #+END_SRC
 
+** Increase the amount of data which emacs reads from the process
+
+   #+begin_src emacs-lisp
+     (setq read-process-output-max (* 1024 1024))
+   #+end_src
+
 ** Add load-path
 
    #+BEGIN_SRC emacs-lisp
@@ -72,9 +78,26 @@
    #+END_SRC
 
 ** Add a path to Environment Variable
+
    #+BEGIN_SRC emacs-lisp
-     (when-mac (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
-	       (setq exec-path (append exec-path '("/usr/local/bin"))))
+     ;; (defun set-exec-path-from-shell-PATH ()
+     ;;   "Set up Emacs' `exec-path' and PATH environment variable to match
+     ;; that used by the user's shell.
+
+     ;; This is particularly useful under Mac OS X and macOS, where GUI
+     ;; apps are not started from a shell."
+     ;;   (interactive)
+     ;;   (let ((path-from-shell (replace-regexp-in-string
+     ;;    			  "[ \t\n]*$" "" (shell-command-to-string
+     ;;    					  "$SHELL --login -c 'echo $PATH'"
+     ;;    						    ))))
+     ;;     (setenv "PATH" path-from-shell)
+     ;;     (setq exec-path (split-string path-from-shell path-separator))))
+
+     ;; (set-exec-path-from-shell-PATH)
+
+     ;; (when-mac (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
+     ;; 	  (setq exec-path (append exec-path '("/usr/local/bin"))))
    #+END_SRC
 
 ** Input method & coding system
@@ -233,6 +256,11 @@
        ;; (require 'fontutil)
 
        (set-face-attribute 'default nil :font "Cascadia Code PL")
+       ;; (set-face-attribute 'default nil :font "Liberation Mono")
+       ;; (set-face-attribute 'default nil :font "D2Coding ligature" :height 120)
+       ;; (set-face-attribute 'default nil :font "Fira Code" :height 120)
+       ;; (set-face-attribute 'default nil :font "Hack" :height 120)
+       ;; (set-face-attribute 'default nil :font "Dejavu Sans Mono" :height 120)
        (set-fontset-font t '(#X1200 . #Xa95f) '("D2Coding" . "unicode-bmp"))
        (set-fontset-font t '(#Xac00 . #Xd7af) '("D2Coding" . "unicode-bmp"))
 
@@ -260,7 +288,7 @@
    #+BEGIN_SRC emacs-lisp
      (use-package doom-themes
        :ensure t
-       :init (load-theme 'doom-one t)
+       :init (load-theme 'doom-nord t)        ;doom-one
        :config
        (setq doom-themes-enable-bold t
 	     doom-themes-enable-italic t)
@@ -313,7 +341,8 @@
 							       (python . t)
 							       (ditaa . t)
 							       (emacs-lisp . t)
-							       (http . t)))
+							       (http . t)
+							       (rust . t)))
       (set-register ?l `(cons 'file ,(concat org-directory "/links.org")))
       ;; refer to http://orgmode.org/manual/Template-elements.html#Template-elements
       (setq org-capture-templates
@@ -373,6 +402,17 @@
   #+begin_src emacs-lisp
     (add-hook 'org-mode-hook (lambda () (display-line-numbers-mode 0)))
   #+end_src
+
+# ** org-roam
+
+#    #+begin_src emacs-lisp
+#      (use-package org-roam
+#        :ensure t
+#        :init (setq org-roam-v2-ack t)
+#        :config (setq org-roam-directory "~/Dropbox/org-roam"))
+     
+#      (add-hook 'after-init-hook 'org-roam-mode)
+#    #+end_src
 
 * Programming
 
@@ -467,43 +507,56 @@
        :after yasnippet)
    #+END_SRC
 
-** company
-   #+BEGIN_SRC emacs-lisp
-     (use-package company
-       :ensure t
-       :bind (("C-M-i" . company-complete)
-	      :map company-active-map
-	      ("C-n" . company-select-next)
-	      ("C-p" . company-select-previous)
-	      ("<tab>" . company-complete-common-or-cycle)
-	      :map company-search-map
-	      ("C-n" . company-select-next)
-	      ("C-p" . company-select-previous))
-       :init (add-hook 'after-init-hook `global-company-mode))
-   #+END_SRC
-
 ** lsp-mode
    A mode for Language Server Protocol.
 
    sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-language-server][bash-language-server]]를 먼저 설치해야한다.
 
    #+BEGIN_SRC emacs-lisp
-     (setq lsp-keymap-prefix "C-c l")
+     ;; (setq lsp-keymap-prefix "C-c l")
+
+     (defun bj/lsp-mode-setup ()
+       (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
+       (lsp-headerline-breadcrumb-mode))
 
      (use-package lsp-mode
        :ensure t
-       :hook ((lsp-mode . lsp-enable-which-key-integration))
-       :custom (lsp-enable-on-type-formatting nil)
-       :commands lsp)
+       :init (setq lsp-keymap-prefix "C-c l")
+       ;; :hook (((c-mode) . lsp-mode)
+       ;;        (lsp-mode . bj/lsp-mode-setup)
+       ;;        (lsp-mode . lsp-enable-which-key-integration)
+       ;;        )
+       ;; :custom (lsp-enable-on-type-formatting nil)
+       :custom  (lsp-rust-analyzer-server-command '("~/.local/bin/rust-analyzer"))
+       (lsp-rust-analyzer-cargo-watch-command "clippy")
+       (lsp-eldoc-render-all t)
+       (lsp-idle-delay 0.6)
+       (lsp-rust-analyzer-server-display-inlay-hints t)
+       :config
+       (add-hook 'lsp-mode-hook 'lsp-ui-mode)
+       :commands lsp lsp-deferred)
 
      (use-package lsp-ui
        :ensure t
-       :commands lsp-ui-mode)
+       :commands lsp-ui-mode
+       :hook (lsp-mode . lsp-ui-mode)
+       :config
+       (setq lsp-ui-sideline-enable t)
+       (setq lsp-ui-sideline-show-hover nil)
+       ;; (lsp-ui-doc-enable nil)
+     :custom
+     (lsp-ui-peek-always-show t)
+     (lsp-ui-sideline-show-hover t)
+     (lsp-ui-doc-enable nil))
 
      ;; (use-package company-lsp
      ;;   :ensure t
      ;;   :commands company-lsp
      ;;   :config (push 'company-lsp company-backends))
+
+     (setq lsp-prefer-capf t)
+     (setq lsp-completion-provider :capf)
+     (setq lsp-completion-enable t)
 
      (use-package ccls
        :ensure t
@@ -517,6 +570,7 @@
 
      (use-package lsp-treemacs
        :ensure t
+       :after lsp-mode
        :commands lsp-treemacs-errors-list)
    #+END_SRC
 
@@ -525,6 +579,25 @@
 	   ;; company-lsp-async t
 	   ;; company-lsp-cache-candidates nil)
    #+END_SRC
+
+** company
+   #+BEGIN_SRC emacs-lisp
+     (use-package company
+       :ensure t
+       :after lsp-mode
+       :hook (lsp-mode . company-mode)
+       :bind (("C-M-i" . company-complete)
+	      :map company-active-map
+	      ("C-n" . company-select-next)
+	      ("C-p" . company-select-previous)
+	      ("<tab>" . company-complete-common-or-cycle)
+	      :map lsp-mode-map
+	      ("<tab>" . company-indent-or-complete-common)
+	      :map company-search-map
+	      ("C-n" . company-select-next)
+	      ("C-p" . company-select-previous)))
+   #+END_SRC
+
 
 ** C/C++
 
@@ -543,13 +616,6 @@
        :ensure t
        :bind (:map c-mode-base-map
 		   ("C-M-\\" . clang-format-region)))
-   #+END_SRC
-
-** Arduino
-
-   #+BEGIN_SRC emacs-lisp
-     (use-package arduino-mode
-       :ensure t)
    #+END_SRC
 
 ** Python
@@ -589,18 +655,68 @@
 ** Rust
 
    #+begin_src emacs-lisp
-     (use-package rust-mode
-       :init (add-hook 'rust-mode-hook (lambda () (setq indent-tabs-mode nil)))
+     ;; (setq exec-path (append exec-path '("~/.cargo/bin")))
 
-       :bind (:map rust-mode-map
-		   ("C-c r" . rust-run)
-		   ("C-c t" . rust-test)
-		   ("C-c b" . cargo-process-build))
-       :config (setq rust-format-on-save t))
+     ;; (use-package rust-mode
+     ;;   :init (add-hook 'rust-mode-hook (lambda () (setq indent-tabs-mode nil)))
 
-     (use-package cargo
-       :hook (rust-mode . cargo-minor-mode))
+     ;;   :bind (:map rust-mode-map
+     ;; 	      ("C-c r" . rust-run)
+     ;; 	      ("C-c t" . rust-test)
+     ;; 	      ("C-c b" . cargo-process-build))
+     ;;   :config (setq rust-format-on-save t))
+
+     ;; (use-package cargo
+     ;;   :hook (rust-mode . cargo-minor-mode))
+
+     (use-package rustic
+       :ensure
+       :bind (:map rustic-mode-map
+		   ("M-j" . lsp-ui-imenu)
+		   ("M-?" . lsp-find-references)
+		   ("C-c C-c l" . flycheck-list-errors)
+		   ("C-c C-c a" . lsp-execute-code-action)
+		   ("C-c C-c r" . lsp-rename)
+		   ("C-c C-c q" . lsp-workspace-restart)
+		   ("C-c C-c Q" . lsp-workspace-shutdown)
+		   ("C-c C-c s" . lsp-rust-analyzer-status)
+		   ("C-c C-c e" . lsp-rust-analyzer-expand-macro)
+		   ("C-c C-c d" . dap-hydra)
+		   ("C-c C-c h" . lsp-ui-doc-glance))
+       :config
+       ;; uncomment for less flashiness
+       ;; (setq lsp-eldoc-hook nil)
+       ;; (setq lsp-enable-symbol-highlighting nil)
+       ;; (setq lsp-signature-auto-activate nil)
+
+       ;; comment to disable rustfmt on save
+       (setq rustic-format-on-save t)
+       (add-hook 'rustic-mode-hook 'rk/rustic-mode-hook))
+
+     (defun rk/rustic-mode-hook ()
+       ;; so that run C-c C-c C-r works without having to confirm, but don't try to
+       ;; save rust buffers that are not file visiting. Once
+       ;; https://github.com/brotzeit/rustic/issues/253 has been resolved this should
+       ;; no longer be necessary.
+       (when buffer-file-name
+	 (setq-local buffer-save-without-query t)))
    #+end_src
+
+   #+begin_src emacs-lisp
+     (use-package rust-playground
+       :ensure)
+
+     (use-package toml-mode
+       :ensure)
+   #+end_src
+
+
+** Arduino
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package arduino-mode
+       :ensure t)
+   #+END_SRC
 
    org-mode structure template에 python을 추가한다.
 
@@ -608,6 +724,7 @@
      (if (boundp 'org-structure-template-alist)
 	 (add-to-list 'org-structure-template-alist '("p" . "src python")))
    #+END_SRC
+
 
 ** Emacs Lisp
    #+BEGIN_SRC emacs-lisp
@@ -702,6 +819,38 @@
 		    deft-text-mode 'org-mode))
   #+END_SRC
 * Tools
+
+** Managing mails with mu4e
+
+   #+begin_src emacs-lisp
+     (require 'mu4e)
+     (require 'mu4e-contrib)
+
+     (setq mu4e-mu-binary "~/.local/bin/mu")
+     (setq mu4e-change-filenames-when-moving t)
+
+     (setq mu4e-update-interval (* 10 60))
+     (setq mu4e-get-mail-command "mbsync -a")
+     (setq mu4e-maildir "~/Mail")
+
+     (setq mu4e-drafts-folder "/[Gmail].Drafts")
+     (setq mu4e-sent-folder "/[Gmail].Sent Mail")
+     (setq mu4e-refile-folder "/[Gmail].All Mail")
+     (setq mu4e-trash-folder "/[Gmail].Trash")
+
+     (setq mu4e-maildir-shortcuts
+	   '(("/Inbox" . ?i)
+	     ("/[Gmail].Sent Mail" . ?s)
+	     ("/[Gmail].Trash" . ?t)
+	     ("/[Gmail].Draft" . ?d)
+	     ("/[Gmail].All Mail" . ?a)))
+   #+end_src
+
+   #+begin_src emacs-lisp
+     (use-package org-mime
+       :ensure t)
+   #+end_src
+
 ** Google Translater
 
    #+BEGIN_SRC emacs-lisp
