@@ -470,6 +470,20 @@ I need this definitly. This is an awesome plugin as git client.
     :bind ("C-x g" . magit-status))
 #+END_SRC
 
+** A hook for compilation buffer using ansi-color
+
+[[https://emacs.stackexchange.com/questions/8135/why-does-compilation-buffer-show-control-characters]["Why does *compilation* buffer show control characters?"]] 참조함.
+
+#+begin_src emacs-lisp
+  (use-package 'ansi-color)
+
+  (defun my/ansi-colorize-buffer ()
+    (let ((buffer-read-only nil))
+      (ansi-color-apply-on-region (point-min) (point-max))))
+
+  (add-hook 'compilation-filter-hook 'my/ansi-colorize-buffer)
+#+end_src
+
 ** Coding convention
 
 #+begin_src emacs-lisp
