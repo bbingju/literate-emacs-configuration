@@ -835,7 +835,7 @@ org-mode structure template에 python을 추가한다.
 #+END_SRC
 * Tools
 
-** Managing mails with mu4e
+** COMMENT Managing mails with mu4e
 
 #+begin_src emacs-lisp
   (require 'mu4e)
