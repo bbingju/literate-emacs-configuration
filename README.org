@@ -337,7 +337,8 @@ installed. Run ~M-x all-the-icons-install-fonts~ to do so.
            ("C-c a" . org-agenda))
 
     :config
-    (setq org-startup-indented 't)
+    (setq org-startup-indented 't
+          org-ditaa-jar-path "~/.emacs.d/ditaa.jar")
     (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
                                                              (python . t)
                                                              (ditaa . t)
