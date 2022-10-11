@@ -217,6 +217,7 @@ If the file =~/.emacs.d/.custom.el= exist, load it.
 The default =C-x c= is quite close to =C-x C-c=, which quits Emacs.
 Changed to =C-c h=. Note: We must set =C-c h= globally, because we
 cannot change `helm-command-prefix-key' once `helm-config' is loaded.
+
 #+BEGIN_SRC emacs-lisp
   (global-set-key (kbd "C-c h") 'helm-command-prefix)
   (global-unset-key (kbd "C-x c"))
@@ -249,13 +250,36 @@ Hide =tool-bar= and =scroll-bar=.
    '(tool-bar-mode scroll-bar-mode))
 #+END_SRC
 
+** doom-themes
+
+#+BEGIN_SRC emacs-lisp
+  (use-package doom-themes
+    :ensure t
+    :init (load-theme 'doom-one t)
+    :config
+    (setq doom-themes-enable-bold t
+          doom-themes-enable-italic t)
+    (doom-themes-visual-bell-config)
+    (doom-themes-neotree-config)
+    (doom-themes-org-config))
+#+END_SRC
+
+** dome-modeline
+This package requires the fonts included with =all-the-icons= to be installed. Run ~M-x all-the-icons-install-fonts~ to do so.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package doom-modeline
+    :ensure t
+    :init (doom-modeline-mode 1))
+#+END_SRC
+
 ** Font setting
 
 #+BEGIN_SRC emacs-lisp
   (when (display-graphic-p)
     ;; (require 'fontutil)
 
-    (set-face-attribute 'default nil :font "Cascadia Code PL")
+    (set-face-attribute 'default nil :font "Cascadia Code PL" :width 'condensed :weight 'semi-light)
     ;; (set-face-attribute 'default nil :font "Liberation Mono")
     ;; (set-face-attribute 'default nil :font "D2Coding ligature" :height 120)
     ;; (set-face-attribute 'default nil :font "Fira Code" :height 120)
@@ -271,7 +295,7 @@ Hide =tool-bar= and =scroll-bar=.
     (set-fontset-font t '(#Xf100 . #Xf66e) '("함초롬돋움" . "unicode-bmp"))
 
     (set-fontset-font t 'han '("Noto Sans CJK KR" . "unicode-bmp"))
-    (setq line-spacing 4)
+    (setq line-spacing 6)
     )
   ;; (when-linux (fontutil/set-font "cascadia-14")))
 
@@ -281,31 +305,6 @@ Hide =tool-bar= and =scroll-bar=.
   ;; (when-windows (fontutil/set-font "d2coding-14")
   ;;       	(setq-default line-spacing 4)))
 
-#+END_SRC
-
-** doom-themes
-
-#+BEGIN_SRC emacs-lisp
-  (use-package doom-themes
-    :ensure t
-    :init (load-theme 'doom-nord t)        ;doom-one
-    :config
-    (setq doom-themes-enable-bold t
-          doom-themes-enable-italic t)
-    (doom-themes-visual-bell-config)
-    (doom-themes-neotree-config)
-    (doom-themes-org-config))
-#+END_SRC
-
-** dome-modeline
-This package requires the fonts included with =all-the-icons= to be
-installed. Run ~M-x all-the-icons-install-fonts~ to do so.
-   
-#+BEGIN_SRC emacs-lisp
-  (use-package doom-modeline
-    :ensure t
-    :defer t
-    :hook (after-init . doom-modeline-init))
 #+END_SRC
 
 ** line numbers
@@ -321,6 +320,18 @@ installed. Run ~M-x all-the-icons-install-fonts~ to do so.
 #+end_src
 
 #+BEGIN_SRC emacs-lisp
+  (defface org-block-begin-line
+    '((t (:underline "#A7A6AA" :foreground "#008ED1" :background "#EAEAFF")))
+    "Face used for the line delimiting the begin of source blocks.")
+
+  (defface org-block-background
+    '((t (:background "#FFFFEA")))
+    "Face used for the source block background.")
+
+  (defface org-block-end-line
+    '((t (:overline "#A7A6AA" :foreground "#008ED1" :background "#EAEAFF")))
+    "Face used for the line delimiting the end of source blocks.")
+
   (use-package org
     :ensure t
 
@@ -344,7 +355,8 @@ installed. Run ~M-x all-the-icons-install-fonts~ to do so.
                                                              (ditaa . t)
                                                              (emacs-lisp . t)
                                                              (http . t)
-                                                             (rust . t)))
+                                                             (rust . t)
+                                                             (latex. t)))
     (set-register ?l `(cons 'file ,(concat org-directory "/links.org")))
     ;; refer to http://orgmode.org/manual/Template-elements.html#Template-elements
     (setq org-capture-templates
@@ -363,11 +375,21 @@ installed. Run ~M-x all-the-icons-install-fonts~ to do so.
              (concat org-directory "/feeds.org")
              "Slashdot Entries")))
 
+    (add-to-list 'org-latex-packages-alist '("" "listings" nil))
+    (setq org-latex-listings t)
+    (setq org-latex-listings-options '(("breaklines" "true")))
+    (setq org-latex-minted-options '(("breaklines" "true")
+                                   ("breakanywhere" "true")))
+
     (with-eval-after-load 'ox-latex
       (add-to-list 'org-latex-classes
                    '("xoblivoir"
                      "\\documentclass{xoblivoir}"))))
 
+  (require 'color)
+  (set-face-attribute 'org-block nil :background
+                      (color-darken-name
+                       (face-attribute 'default :background) 3))
 
   (use-package org-bullets
     :requires org
@@ -419,9 +441,8 @@ Override line-numbers-mode in org-mode.
 * Programming
 
 ** projectile
-~projectile-indexing-method~ 를 =alien= 으로 지정하여 Windows에서도
-이 방법을 쓰도록 강제한다. 자세한 내용은 [[https://github.com/bbatsov/projectile/issues/1183][이슈]]에서 확인할 수 있다.
-메뉴얼은 [[https://www.projectile.mx/en/latest/][여기]]에서 볼 수 있다.
+
+~projectile-indexing-method~ 를 =alien= 으로 지정하여 Windows에서도 이 방법을 쓰도록 강제한다. 자세한 내용은 [[https://github.com/bbatsov/projectile/issues/1183][이슈]]에서 확인할 수 있다. 메뉴얼은 [[https://www.projectile.mx/en/latest/][여기]]에서 볼 수 있다.
 
 #+BEGIN_SRC emacs-lisp
   (use-package projectile
@@ -461,7 +482,8 @@ Override line-numbers-mode in org-mode.
 #+END_SRC
 
 ** magit
-I need this definitly. This is an awesome plugin as git client.
+
+This is an awesome plugin as git client.
 
 #+BEGIN_SRC emacs-lisp
   (use-package magit
@@ -475,14 +497,11 @@ I need this definitly. This is an awesome plugin as git client.
 
 [[https://emacs.stackexchange.com/questions/8135/why-does-compilation-buffer-show-control-characters]["Why does *compilation* buffer show control characters?"]] 참조함.
 
+Note: ~ansi-color-compilation-filter~ is built in since emacs 28.1.
+
 #+begin_src emacs-lisp
-  (use-package 'ansi-color)
-
-  (defun my/ansi-colorize-buffer ()
-    (let ((buffer-read-only nil))
-      (ansi-color-apply-on-region (point-min) (point-max))))
-
-  (add-hook 'compilation-filter-hook 'my/ansi-colorize-buffer)
+  (require 'ansi-color)
+  (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
 #+end_src
 
 ** Coding convention
@@ -524,6 +543,7 @@ I need this definitly. This is an awesome plugin as git client.
 #+END_SRC
 
 ** lsp-mode
+
 A mode for Language Server Protocol.
 
 sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-language-server][bash-language-server]]를 먼저 설치해야한다.
@@ -543,36 +563,40 @@ sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-languag
     ;;        (lsp-mode . lsp-enable-which-key-integration)
     ;;        )
     ;; :custom (lsp-enable-on-type-formatting nil)
-    :custom  (lsp-rust-analyzer-server-command '("~/.local/bin/rust-analyzer"))
-    (lsp-rust-analyzer-cargo-watch-command "clippy")
+    :custom
+    ;; (lsp-rust-analyzer-server-command '("~/.cargo/bin/rust-analyzer"))
     (lsp-eldoc-render-all t)
+    (lsp-rust-analyzer-cargo-watch-command "clippy")
+
     (lsp-idle-delay 0.6)
     (lsp-rust-analyzer-server-display-inlay-hints t)
     :config
     (add-hook 'lsp-mode-hook 'lsp-ui-mode)
-    :commands lsp lsp-deferred)
+    :commands lsp lsp-deferred
+    )
 
   (use-package lsp-ui
     :ensure t
     :commands lsp-ui-mode
     :hook (lsp-mode . lsp-ui-mode)
     :config
-    (setq lsp-ui-sideline-enable t)
-    (setq lsp-ui-sideline-show-hover nil)
+    ;; (setq lsp-ui-sideline-enable nil)
+    ;; (setq lsp-ui-sideline-show-hover nil)
     ;; (lsp-ui-doc-enable nil)
     :custom
-    (lsp-ui-peek-always-show t)
-    (lsp-ui-sideline-show-hover t)
-    (lsp-ui-doc-enable nil))
+    (lsp-ui-peek-always-show nil)
+    (lsp-ui-sideline-show-hover nil)
+    (lsp-ui-doc-enable t)
+    (lsp-ui-imenu-enable t))
 
   ;; (use-package company-lsp
   ;;   :ensure t
   ;;   :commands company-lsp
   ;;   :config (push 'company-lsp company-backends))
 
-  (setq lsp-prefer-capf t)
-  (setq lsp-completion-provider :capf)
-  (setq lsp-completion-enable t)
+  ;; (setq lsp-prefer-capf t)
+  ;; (setq lsp-completion-provider :capf)
+  ;; (setq lsp-completion-enable t)
 
   (use-package ccls
     :ensure t
@@ -598,20 +622,20 @@ sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-languag
 
 ** company
 #+BEGIN_SRC emacs-lisp
-  (use-package company
-    :ensure t
-    :after lsp-mode
-    :hook (lsp-mode . company-mode)
-    :bind (("C-M-i" . company-complete)
-           :map company-active-map
-           ("C-n" . company-select-next)
-           ("C-p" . company-select-previous)
-           ("<tab>" . company-complete-common-or-cycle)
-           :map lsp-mode-map
-           ("<tab>" . company-indent-or-complete-common)
-           :map company-search-map
-           ("C-n" . company-select-next)
-           ("C-p" . company-select-previous)))
+  ;; (use-package company
+  ;;   :ensure t
+  ;;   :after lsp-mode
+  ;;   :hook (lsp-mode . company-mode)
+  ;;   :bind (("C-M-i" . company-complete)
+  ;;          :map company-active-map
+  ;;          ("C-n" . company-select-next)
+  ;;          ("C-p" . company-select-previous)
+  ;;          ("<tab>" . company-complete-common-or-cycle)
+  ;;          :map lsp-mode-map
+  ;;          ("<tab>" . company-indent-or-complete-common)
+  ;;          :map company-search-map
+  ;;          ("C-n" . company-select-next)
+  ;;          ("C-p" . company-select-previous)))
 #+END_SRC
 
 
@@ -628,10 +652,10 @@ sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-languag
 먼저 llvm을 설치해야한다.
 
 #+BEGIN_SRC emacs-lisp
-  (use-package clang-format
-    :ensure t
-    :bind (:map c-mode-base-map
-                ("C-M-\\" . clang-format-region)))
+  ;; (use-package clang-format
+  ;;   :ensure t
+  ;;   :bind (:map c-mode-base-map
+  ;;               ("C-M-\\" . clang-format-region)))
 #+END_SRC
 
 ** Python
@@ -886,3 +910,5 @@ org-mode structure template에 python을 추가한다.
     :ensure t
     :init (setq rfc-mode-directory (expand-file-name "~/Dropbox/resources/rfc/")))
 #+end_src
+
+
