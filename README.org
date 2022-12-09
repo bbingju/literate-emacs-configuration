@@ -225,7 +225,22 @@ cannot change `helm-command-prefix-key' once `helm-config' is loaded.
 
 ** Others
 
+~auto-fill-mode~ 에서 작성한 plain text 문서의 개행문자를 없애주는 함수를 정의한다. [[https://www.emacswiki.org/emacs/UnfillRegion][Emacs Wiki]]에서 가져왔다. 이게 왜 기본 코드로 추가되어 있지 않은지 모르겠다.
+
 #+begin_src emacs-lisp
+  (defun unfill-region (beg end)
+    "Unfill the region, joining text paragraphs into a single
+      logical line.  This is useful, e.g., for use with
+      `visual-line-mode'."
+    (interactive "*r")
+    (let ((fill-column (point-max)))
+      (fill-region beg end)))
+#+end_src
+
+전체적으로 쓰이는 단축키를 등록한다.
+
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-M-Q") 'unfill-region)
   (global-set-key (kbd "M-u") 'upcase-dwim)
   (global-set-key (kbd "M-l") 'downcase-dwim)
   (global-set-key (kbd "M-c") 'capitalize-dwim)
