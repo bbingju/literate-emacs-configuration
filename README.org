@@ -329,7 +329,7 @@ This package requires the fonts included with =all-the-icons= to be installed. R
 
 ** line numbers
 
-라인번호를 특정 모드에 붙인다.
+라인번호를 특정 모드에 붙인다.
 
 #+begin_src emacs-lisp
   (use-package display-line-numbers-mode
