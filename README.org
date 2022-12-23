@@ -466,7 +466,6 @@ Override line-numbers-mode in org-mode.
 
 #+BEGIN_SRC emacs-lisp
   (use-package projectile
-    :ensure t
     :after
     (helm)
     :bind-keymap
@@ -475,7 +474,6 @@ Override line-numbers-mode in org-mode.
     (projectile-mode +1)
     :config
     (use-package helm-projectile
-      :ensure t
       :config (helm-projectile-on))
     :custom
     (projectile-enable-caching t)
@@ -490,7 +488,6 @@ This is an awesome plugin as git client.
 
 #+BEGIN_SRC emacs-lisp
   (use-package magit
-    :ensure t
     :commands (magit-init
                magit-status)
     :bind ("C-x g" . magit-status))
