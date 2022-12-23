@@ -53,13 +53,19 @@
 
 ** use-package
 
-If [[https://github.com/jwiegley/use-package][use-package]] is not installed, install it from the ELPA.
+패키지 관리에 [[https://github.com/jwiegley/use-package][use-package]]를 적극 이용한다. 하지만 아직도 개별 설정에 의문스러운 점이 많다.
 
 #+BEGIN_SRC emacs-lisp
   (unless (package-installed-p 'use-package)
     (package-refresh-contents)
     (package-install 'use-package))
 #+END_SRC
+
+=use-package= 가 편한 이유 중 하나는 필요한 패키지를 elpa에서 직접 가져오기 때문이다. 그런데 설정마다 ~:ensure t~ 를 설정해줘야 자동으로 진행하는데 번거로우므로 전역변수로 설정해둔다.
+
+#+begin_src emacs-lisp
+  (setq use-package-always-ensure t)
+#+end_src
 
 ** My own fuctions & macros
 
