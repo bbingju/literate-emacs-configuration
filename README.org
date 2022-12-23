@@ -231,6 +231,12 @@ cannot change `helm-command-prefix-key' once `helm-config' is loaded.
 
 ** Others
 
+text-mode를 사용할 경우 visual-line-mode를 활성화 한다.
+
+#+begin_src emacs-lisp
+  (add-hook 'text-mode-hook #'visual-line-mode)
+#+end_src
+
 ~auto-fill-mode~ 에서 작성한 plain text 문서의 개행문자를 없애주는 함수를 정의한다. [[https://www.emacswiki.org/emacs/UnfillRegion][Emacs Wiki]]에서 가져왔다. 이게 왜 기본 코드로 추가되어 있지 않은지 모르겠다.
 
 #+begin_src emacs-lisp
