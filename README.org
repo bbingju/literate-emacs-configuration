@@ -328,10 +328,14 @@ This package requires the fonts included with =all-the-icons= to be installed. R
 #+END_SRC
 
 ** line numbers
-#+BEGIN_SRC emacs-lisp
+
+라인번호를 특정 모드에 붙인다.
+
+#+begin_src emacs-lisp
   (use-package display-line-numbers-mode
+    :ensure nil
     :hook (prog-mode text-mode conf-mode))
-#+END_SRC
+#+end_src
 
 * Orgmode
 
@@ -769,6 +773,7 @@ org-mode structure template에 python을 추가한다.
 ** Emacs Lisp
 #+BEGIN_SRC emacs-lisp
   (use-package elisp-mode
+    :ensure nil
     :init
     (add-hook 'emacs-lisp-mode-hook (lambda () (setq indent-tabs-mode nil)))
     :bind (:map emacs-lisp-mode-map
@@ -780,14 +785,13 @@ org-mode structure template에 python을 추가한다.
     :commands ielm)
 
   (use-package eldoc-mode
+    :ensure nil
     :hook (emacs-lisp-mode ielm-mode))
 
   (use-package paredit
-    :ensure t
     :hook ((lisp-mode emacs-lisp-mode ielm-mode) . paredit-mode))
 
   (use-package rainbow-delimiters
-    :ensure t
     :hook ((emacs-lisp-mode ielm-mode) . rainbow-delimiters-mode))
 #+END_SRC
 
