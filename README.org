@@ -456,27 +456,25 @@ Override line-numbers-mode in org-mode.
 
 ** projectile
 
-~projectile-indexing-method~ 를 =alien= 으로 지정하여 Windows에서도 이 방법을 쓰도록 강제한다. 자세한 내용은 [[https://github.com/bbatsov/projectile/issues/1183][이슈]]에서 확인할 수 있다. 메뉴얼은 [[https://www.projectile.mx/en/latest/][여기]]에서 볼 수 있다.
+~projectile-indexing-method~ 를 =alien= 으로 지정하여 Windows에서도 이 방법을 쓰도록 강제한다. 자세한 내용은 [[https://github.com/bbatsov/projectile/issues/1183][이슈]]에서 확인할 수 있다. 메뉴얼은 [[https://docs.projectile.mx/projectile/index.html][여기]]에서 볼 수 있다.
 
 #+BEGIN_SRC emacs-lisp
   (use-package projectile
     :ensure t
-    :requires (helm)
-    :bind (:map projectile-mode-map
-                ("C-c p" . 'projectile-command-map))
+    :after
+    (helm)
+    :bind-keymap
+    ("C-c p" . projectile-command-map)
+    :init
+    (projectile-mode +1)
     :config
-    (setq projectile-enable-caching t
-          projectile-indexing-method 'alien
-          projectile-completion-system 'helm)
-    (projectile-mode +1))
-#+END_SRC
-
-** helm-projectile
-#+BEGIN_SRC emacs-lisp
-  (use-package helm-projectile
-    :ensure t
-    :requires (helm projectile)
-    :config (helm-projectile-on))
+    (use-package helm-projectile
+      :ensure t
+      :config (helm-projectile-on))
+    :custom
+    (projectile-enable-caching t)
+    (projectile-indexing-method 'alien)
+    (projectile-completion-system 'helm))
 #+END_SRC
 
 ** COMMENT helm-gtags
