@@ -346,7 +346,8 @@ This package requires the fonts included with =all-the-icons= to be installed. R
 * Orgmode
 
 #+begin_src emacs-lisp
-  (use-package ob-http :ensure)
+  (use-package ob-http)
+  (use-package ob-rust)
 #+end_src
 
 #+BEGIN_SRC emacs-lisp
