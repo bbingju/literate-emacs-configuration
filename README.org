@@ -428,6 +428,14 @@ This package requires the fonts included with =all-the-icons= to be installed. R
     :hook (org-mode . (lambda () (org-bullets-mode 1))))
 #+END_SRC
 
+한글이 섞인 테이블이 삐뚤빼뚤 해지는 것을 바로잡기 위해 [[https://github.com/casouri/valign][이 패키지]]를 사용한다.
+
+#+begin_src emacs-lisp
+  (use-package valign
+      :requires org
+      :hook org-mode)
+#+end_src
+
 This json babel taken from https://isamert.net/2022/01/04/dealing-with-apis-jsons-and-databases-in-org-mode.html.
 
 #+begin_src emacs-lisp
