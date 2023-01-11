@@ -160,7 +160,6 @@ If the file =~/.emacs.d/.custom.el= exist, load it.
     :diminish helm-mode
     :init
     (progn
-      (require 'helm-config)
       (setq helm-M-x-requires-pattern nil
             helm-split-window-inside-p t ; open helm buffer inside
                                           ; current window, not occupy
@@ -375,8 +374,7 @@ This package requires the fonts included with =all-the-icons= to be installed. R
                                                              (ditaa . t)
                                                              (emacs-lisp . t)
                                                              (http . t)
-                                                             (rust . t)
-                                                             (latex. t)))
+                                                             (rust . t)))
     (set-register ?l `(cons 'file ,(concat org-directory "/links.org")))
     ;; refer to http://orgmode.org/manual/Template-elements.html#Template-elements
     (setq org-capture-templates
