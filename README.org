@@ -1,5 +1,5 @@
 # -*- mode: org; coding: utf-8 -*-
-#+STARTUP: overview
+#+STARTUP: show2levels
 #+TITLE: My Literate Emacs Configuration
 #+AUTHOR: Phil Hwang
 
