@@ -548,6 +548,18 @@ Note: ~ansi-color-compilation-filter~ is built in since emacs 28.1.
     :after yasnippet)
 #+END_SRC
 
+** Eldoc
+
+#+begin_src emacs-lisp
+  (use-package eldoc-mode
+    :hook (emacs-lisp-mode ielm-mode rust-mode rust-ts-mode))
+#+end_src
+
+#+begin_src emacs-lisp
+  (setq eldoc-echo-area-prefer-doc-buffer t)
+#+end_src
+
+
 ** lsp-mode
 
 A mode for Language Server Protocol.
