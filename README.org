@@ -83,28 +83,17 @@
           (cons 'progn body)))
 #+END_SRC
 
-** Add a path to Environment Variable
+** Sync a path to Environment Variable
 
-#+BEGIN_SRC emacs-lisp
-  ;; (defun set-exec-path-from-shell-PATH ()
-  ;;   "Set up Emacs' `exec-path' and PATH environment variable to match
-  ;; that used by the user's shell.
+GUI 모드나 맥 환경에서 emacs를 실행하면, 기 설정된 쉘 =PATH= 환경변수가 emacs에 적용되지 않을 수 있다. [[https://github.com/purcell/exec-path-from-shell][exec-path-from-shell]] 패키지를 이용하여 싱크를 맞춘다.
 
-  ;; This is particularly useful under Mac OS X and macOS, where GUI
-  ;; apps are not started from a shell."
-  ;;   (interactive)
-  ;;   (let ((path-from-shell (replace-regexp-in-string
-  ;;    			  "[ \t\n]*$" "" (shell-command-to-string
-  ;;    					  "$SHELL --login -c 'echo $PATH'"
-  ;;    						    ))))
-  ;;     (setenv "PATH" path-from-shell)
-  ;;     (setq exec-path (split-string path-from-shell path-separator))))
-
-  ;; (set-exec-path-from-shell-PATH)
-
-  ;; (when-mac (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
-  ;; 	  (setq exec-path (append exec-path '("/usr/local/bin"))))
-#+END_SRC
+#+begin_src emacs-lisp
+  (use-package exec-path-from-shell
+    :if (memq window-system '(darwin mac ns x))
+    :ensure t
+    :config
+    (exec-path-from-shell-initialize))
+#+end_src
 
 ** Input method & coding system
 
@@ -171,7 +160,6 @@ If the file =~/.emacs.d/.custom.el= exist, load it.
     :diminish helm-mode
     :init
     (progn
-      (require 'helm-config)
       (setq helm-M-x-requires-pattern nil
             helm-split-window-inside-p t ; open helm buffer inside
                                           ; current window, not occupy
@@ -386,8 +374,7 @@ This package requires the fonts included with =all-the-icons= to be installed. R
                                                              (ditaa . t)
                                                              (emacs-lisp . t)
                                                              (http . t)
-                                                             (rust . t)
-                                                             (latex. t)))
+                                                             (rust . t)))
     (set-register ?l `(cons 'file ,(concat org-directory "/links.org")))
     ;; refer to http://orgmode.org/manual/Template-elements.html#Template-elements
     (setq org-capture-templates
