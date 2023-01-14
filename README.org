@@ -552,7 +552,7 @@ Note: ~ansi-color-compilation-filter~ is built in since emacs 28.1.
 ** Eldoc
 
 #+begin_src emacs-lisp
-  (use-package eldoc-mode
+  (use-package eldoc
     :hook (emacs-lisp-mode ielm-mode rust-mode rust-ts-mode))
 #+end_src
 
