@@ -1,5 +1,5 @@
 # -*- mode: org; coding: utf-8 -*-
-#+STARTUP: overview
+#+STARTUP: show2levels
 #+TITLE: My Literate Emacs Configuration
 #+AUTHOR: Phil Hwang
 
@@ -85,7 +85,7 @@
 
 ** Sync a path to Environment Variable
 
-GUI 모드나 맥 환경에서 emacs를 실행하면, 기 설정된 쉘 =PATH= 환경변수가 emacs에 적용되지 않을 수 있다. [[https://github.com/purcell/exec-path-from-shell][exec-path-from-shell]] 패키지를 이용하여 싱크를 맞춘다.
+GUI 모드나 맥 환경에서 emacs를 실행하면 설정되어 있던 =PATH= 환경변수가 emacs에 적용되지 않을 수 있다. [[https://github.com/purcell/exec-path-from-shell][exec-path-from-shell]] 패키지를 이용하여 싱크를 맞춘다.
 
 #+begin_src emacs-lisp
   (use-package exec-path-from-shell
@@ -548,6 +548,7 @@ Note: ~ansi-color-compilation-filter~ is built in since emacs 28.1.
     :after yasnippet)
 #+END_SRC
 
+
 ** Eldoc
 
 #+begin_src emacs-lisp
@@ -560,21 +561,20 @@ Note: ~ansi-color-compilation-filter~ is built in since emacs 28.1.
 #+end_src
 
 
-** lsp-mode
+** COMMENT lsp-mode
 
-A mode for Language Server Protocol.
+emacs 29.1 부터는 eglot이 기본으로 포함된다. 사용해보니 원인을 알 수 없는 오동작이 적고 lsp 서버와 연결 안정성이 낫다. 그래서 lsp-mode는 후순위로 바꾼다.
 
-sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-language-server][bash-language-server]]를 먼저 설치해야한다.
+sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-language-server][bash-language-server]]를 먼저 설치해야한다. 추가 설명은 [[https://emacs-lsp.github.io/lsp-mode/page/lsp-bash/][여기]].
 
-#+BEGIN_SRC emacs-lisp
-  ;; (setq lsp-keymap-prefix "C-c l")
+#+begin_src emacs-lisp
+  (setq lsp-keymap-prefix "C-c l")
 
   (defun bj/lsp-mode-setup ()
     (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
     (lsp-headerline-breadcrumb-mode))
 
   (use-package lsp-mode
-    :ensure t
     :init (setq lsp-keymap-prefix "C-c l")
     ;; :hook (((c-mode) . lsp-mode)
     ;;        (lsp-mode . bj/lsp-mode-setup)
@@ -594,7 +594,6 @@ sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-languag
     )
 
   (use-package lsp-ui
-    :ensure t
     :commands lsp-ui-mode
     :hook (lsp-mode . lsp-ui-mode)
     :config
@@ -607,57 +606,57 @@ sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-languag
     (lsp-ui-doc-enable t)
     (lsp-ui-imenu-enable t))
 
-  ;; (use-package company-lsp
-  ;;   :ensure t
-  ;;   :commands company-lsp
-  ;;   :config (push 'company-lsp company-backends))
+  (use-package company-lsp
+    :commands company-lsp
+    :config (push 'company-lsp company-backends))
 
-  ;; (setq lsp-prefer-capf t)
-  ;; (setq lsp-completion-provider :capf)
-  ;; (setq lsp-completion-enable t)
-
-  (use-package ccls
-    :ensure t
-    :hook ((c-mode c++-mode objc-mode sh-mode) .
-           (lambda () (require 'ccls) (lsp)))
-    :config (setq ccls-executable "~/.local/bin/ccls"))
+  (setq lsp-prefer-capf t)
+  (setq lsp-completion-provider :capf)
+  (setq lsp-completion-enable t)
 
   (use-package helm-lsp
-    :ensure t
     :commands helm-lsp-workspace-symbol)
 
   (use-package lsp-treemacs
-    :ensure t
     :after lsp-mode
     :commands lsp-treemacs-errors-list)
-#+END_SRC
+#+end_src
 
-#+BEGIN_SRC emacs-lisp
-  ;; (setq company-transformers nil
-  ;; company-lsp-async t
-  ;; company-lsp-cache-candidates nil)
-#+END_SRC
+#+begin_src emacs-lisp
+  (setq company-transformers nil
+  company-lsp-async t
+  company-lsp-cache-candidates nil)
+#+end_src
 
-** company
-#+BEGIN_SRC emacs-lisp
-  ;; (use-package company
-  ;;   :ensure t
-  ;;   :after lsp-mode
-  ;;   :hook (lsp-mode . company-mode)
-  ;;   :bind (("C-M-i" . company-complete)
-  ;;          :map company-active-map
-  ;;          ("C-n" . company-select-next)
-  ;;          ("C-p" . company-select-previous)
-  ;;          ("<tab>" . company-complete-common-or-cycle)
-  ;;          :map lsp-mode-map
-  ;;          ("<tab>" . company-indent-or-complete-common)
-  ;;          :map company-search-map
-  ;;          ("C-n" . company-select-next)
-  ;;          ("C-p" . company-select-previous)))
-#+END_SRC
+** COMMENT company
+
+#+begin_src emacs-lisp
+  (use-package company
+    :after lsp-mode
+    :hook (lsp-mode . company-mode)
+    :bind (("C-M-i" . company-complete)
+           :map company-active-map
+           ("C-n" . company-select-next)
+           ("C-p" . company-select-previous)
+           ("<tab>" . company-complete-common-or-cycle)
+           :map lsp-mode-map
+           ("<tab>" . company-indent-or-complete-common)
+           :map company-search-map
+           ("C-n" . company-select-next)
+           ("C-p" . company-select-previous)))
+#+end_src
 
 
 ** C/C++
+
+c-mode나 c++-mode 에서 lsp 서버로 ccls를 사용한다. clangd도 괜찮은 것 같으나 임베디드 소스트리에서 작업할 때 네비게이션 문제가 있다.
+
+#+begin_src emacs-lisp
+  (use-package ccls
+    :hook ((c-mode c++-mode objc-mode sh-mode) .
+           (lambda () (require 'ccls) (eglot-ensure)))
+    :config (setq ccls-executable "~/.local/bin/ccls"))
+#+end_src
 
 #+BEGIN_SRC emacs-lisp
   (c-add-style "my-c-style"
