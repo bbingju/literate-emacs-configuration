@@ -85,7 +85,7 @@
 
 ** Sync a path to Environment Variable
 
-GUI 모드나 맥 환경에서 emacs를 실행하면, 기 설정된 쉘 =PATH= 환경변수가 emacs에 적용되지 않을 수 있다. [[https://github.com/purcell/exec-path-from-shell][exec-path-from-shell]] 패키지를 이용하여 싱크를 맞춘다.
+GUI 모드나 맥 환경에서 emacs를 실행하면 설정되어 있던 =PATH= 환경변수가 emacs에 적용되지 않을 수 있다. [[https://github.com/purcell/exec-path-from-shell][exec-path-from-shell]] 패키지를 이용하여 싱크를 맞춘다.
 
 #+begin_src emacs-lisp
   (use-package exec-path-from-shell
@@ -552,7 +552,7 @@ Note: ~ansi-color-compilation-filter~ is built in since emacs 28.1.
 
 A mode for Language Server Protocol.
 
-sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-language-server][bash-language-server]]를 먼저 설치해야한다.
+sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-language-server][bash-language-server]]를 먼저 설치해야한다. 추가 설명은 [[https://emacs-lsp.github.io/lsp-mode/page/lsp-bash/][여기]].
 
 #+BEGIN_SRC emacs-lisp
   ;; (setq lsp-keymap-prefix "C-c l")
