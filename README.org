@@ -784,7 +784,8 @@ org-mode structure template에 python을 추가한다.
 
 
 ** Emacs Lisp
-#+BEGIN_SRC emacs-lisp
+
+#+begin_src elisp
   (use-package elisp-mode
     :ensure nil
     :init
@@ -794,19 +795,12 @@ org-mode structure template에 python을 추가한다.
                 ("M-<f6>" . emacs-lisp-byte-compile-and-load)
                 ("<return>" . newline-and-indent)))
 
-  (use-package ielm
-    :commands ielm)
-
-  (use-package eldoc-mode
-    :ensure nil
-    :hook (emacs-lisp-mode ielm-mode))
-
   (use-package paredit
-    :hook ((lisp-mode emacs-lisp-mode ielm-mode) . paredit-mode))
+    :hook ((lisp-mode emacs-lisp-mode)))
 
   (use-package rainbow-delimiters
-    :hook ((emacs-lisp-mode ielm-mode) . rainbow-delimiters-mode))
-#+END_SRC
+    :hook ((lisp-mode emacs-lisp-mode)))
+#+end_src
 
 
 ** Configurations for Qt5
