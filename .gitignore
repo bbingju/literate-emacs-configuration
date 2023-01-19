@@ -5,6 +5,10 @@ README.el
 ede-projects.el
 projectile-bookmarks.eld
 projectile.cache
+games/
+eln-cache/
+transient/
+url/
 
 *~
 \#*\#
