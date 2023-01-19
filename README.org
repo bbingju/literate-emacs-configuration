@@ -248,7 +248,6 @@ text-mode를 사용할 경우 visual-line-mode를 활성화 한다.
 
 #+begin_src emacs-lisp
   (use-package which-key
-    :ensure t
     :config (which-key-mode))
 #+end_src
 
@@ -269,7 +268,6 @@ Hide =tool-bar= and =scroll-bar=.
 
 #+BEGIN_SRC emacs-lisp
   (use-package doom-themes
-    :ensure t
     :init (load-theme 'doom-one t)
     :config
     (setq doom-themes-enable-bold t
@@ -282,11 +280,10 @@ Hide =tool-bar= and =scroll-bar=.
 ** dome-modeline
 This package requires the fonts included with =all-the-icons= to be installed. Run ~M-x all-the-icons-install-fonts~ to do so.
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src elisp
   (use-package doom-modeline
-    :ensure t
     :init (doom-modeline-mode 1))
-#+END_SRC
+#+end_src
 
 ** Font setting
 
@@ -352,8 +349,6 @@ This package requires the fonts included with =all-the-icons= to be installed. R
     "Face used for the line delimiting the end of source blocks.")
 
   (use-package org
-    :ensure t
-
     :init (setq org-directory my-org-directory
                 org-agenda-files my-org-agenda-files
                 org-default-notes-file (concat org-directory "/notes.org")
@@ -411,7 +406,6 @@ This package requires the fonts included with =all-the-icons= to be installed. R
 
   (use-package org-bullets
     :requires org
-    :ensure t
     :hook (org-mode . (lambda () (org-bullets-mode 1))))
 #+END_SRC
 
@@ -530,7 +524,6 @@ Note: ~ansi-color-compilation-filter~ is built in since emacs 28.1.
 ** flycheck
 #+BEGIN_SRC emacs-lisp
   (use-package flycheck
-    :ensure t
     :hook (after-init . global-flycheck-mode)
     :config
     (setq flycheck-check-syntax-automatically '(save idle-change mode-enabled)))
@@ -688,7 +681,6 @@ c-mode나 c++-mode 에서 lsp 서버로 ccls를 사용한다. clangd도 괜찮�
                                 tab-width 4)))))
 
   (use-package elpy
-    :ensure t
     :defer t
     :init
     (advice-add 'python-mode :before 'elpy-enable)
@@ -701,12 +693,10 @@ c-mode나 c++-mode 에서 lsp 서버로 ccls를 사용한다. clangd도 괜찮�
                 ("M-," . pop-tag-mark)))
 
   (use-package pip-requirements
-    :ensure t
     :config
     (add-hook 'pip-requirements-mode-hook #'pip-requirements-auto-complete-setup))
 
-  (use-package py-autopep8
-    :ensure t)
+  (use-package py-autopep8)
 #+END_SRC
 
 ** Rust
@@ -759,20 +749,16 @@ c-mode나 c++-mode 에서 lsp 서버로 ccls를 사용한다. clangd도 괜찮�
       (setq-local buffer-save-without-query t)))
 #+end_src
 
-#+begin_src emacs-lisp
-  (use-package rust-playground
-    :ensure)
-
-  (use-package toml-mode
-    :ensure)
+#+begin_src elisp
+  (use-package rust-playground)
+  (use-package toml-mode)
 #+end_src
 
 
 ** Arduino
 
 #+BEGIN_SRC emacs-lisp
-  (use-package arduino-mode
-    :ensure t)
+  (use-package arduino-mode)
 #+END_SRC
 
 org-mode structure template에 python을 추가한다.
@@ -806,32 +792,27 @@ org-mode structure template에 python을 추가한다.
 ** Configurations for Qt5
 
 #+BEGIN_SRC emacs-lisp
-  (use-package qml-mode
-    :ensure t)
+  (use-package qml-mode)
 #+END_SRC
 
 ** YAML
 #+BEGIN_SRC emacs-lisp
-  (use-package yaml-mode
-    :ensure t)
+  (use-package yaml-mode)
 #+END_SRC
 
 * Docker
 
 #+BEGIN_SRC emacs-lisp
   (use-package dockerfile-mode
-    :ensure t
     :mode ("Dockerfile\\'" . dockerfile-mode))
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
-  (use-package docker-compose-mode
-    :ensure t)
+  (use-package docker-compose-mode)
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
   (use-package docker
-    :ensure t
     :bind ("C-c d" . docker))
 #+END_SRC
 
@@ -853,7 +834,6 @@ org-mode structure template에 python을 추가한다.
 * markdown-mode
 #+BEGIN_SRC emacs-lisp
   (use-package markdown-mode
-    :ensure t
     :mode ("\\.md\\'" . markdown-mode)
     :init
     (autoload 'markdown-mode "markdown-mode" "Major mode for editing Markdown files" t))
@@ -898,8 +878,7 @@ org-mode structure template에 python을 추가한다.
 #+end_src
 
 #+begin_src emacs-lisp
-  (use-package org-mime
-    :ensure t)
+  (use-package org-mime)
 #+end_src
 
 ** Google Translater
