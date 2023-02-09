@@ -328,7 +328,8 @@ This package requires the fonts included with =all-the-icons= to be installed. R
     :hook (prog-mode text-mode conf-mode))
 #+end_src
 
-* Orgmode
+
+* Org Mode
 
 #+begin_src emacs-lisp
   (use-package ob-http)
@@ -348,6 +349,72 @@ This package requires the fonts included with =all-the-icons= to be installed. R
     '((t (:overline "#A7A6AA" :foreground "#008ED1" :background "#EAEAFF")))
     "Face used for the line delimiting the end of source blocks.")
 
+  (setq org-return-follow-link t
+        org-startup-indented 't
+        org-ditaa-jar-path "~/.emacs.d/ditaa.jar")
+
+  (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
+                                                             (python . t)
+                                                             (ditaa . t)
+                                                             (emacs-lisp . t)
+                                                             (http . t)
+                                                             (rust . t)))
+
+  (setq org-agenda-files '("~/Dropbox/org/inbox.org"
+                           "~/Dropbox/org/projects.org"
+                           "~/Dropbox/org/repeaters.org"))
+
+  (setq org-todo-keywords
+        '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
+          (sequence "WAIT(w@/!)" "HOLD(h@/!)" "|" "CANCELED(c@/!)")))
+
+  (setq org-capture-templates
+        '(("t" "Todo" entry (file+headline "~/Dropbox/org/inbox.org" "Todos")
+           "* TODO %?\n  %i\n  %a")
+          ("r" "To Read Item" entry (file+headline "~/Dropbox/org/inbox.org" "To Read Items") 
+           "* %?\n  %T" :prepend t)))
+
+  (setq org-agenda-custom-commands
+        '((" " "Agenda"
+           ((agenda ""
+                    ((org-agenda-span 'day)))
+            (todo "TODO"
+                  ((org-agenda-overriding-header "Unscheduled tasks")
+                   (org-agenda-files '("~/Dropbox/org/inbox.org"))
+                   (org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))))
+            (todo "TODO"
+                  ((org-agenda-overriding-header "Unscheduled projects tasks")
+                   (org-agenda-files '("~/Dropbox/org/projects.org"))
+                   (org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))))))))
+
+  (global-set-key (kbd "C-c c") #'org-capture)
+  (global-set-key (kbd "C-c a") #'org-agenda)
+
+  (defmacro func-ignore (fnc)
+    "Return function that ignore its arguments and invokes FNC"
+    `(lambda (&rest _rest)
+       (funcall ,fnc)))
+
+  (advice-add 'org-deadline :after (func-ignore #'org-save-all-org-buffers))
+  (advice-add 'org-schedule :after (func-ignore #'org-save-all-org-buffers))
+  (advice-add 'org-store-log-note :after (func-ignore #'org-save-all-org-buffers))
+  (advice-add 'org-todo :after (func-ignore #'org-save-all-org-buffers))
+
+  (require 'color)
+  (set-face-attribute 'org-block nil :background
+                      (color-darken-name
+                       (face-attribute 'default :background) 3))
+
+  (use-package org-bullets
+    :requires org
+    :hook (org-mode . (lambda () (org-bullets-mode 1))))
+
+#+end_src
+
+
+* COMMENT Old Configuration for Org
+
+#+BEGIN_SRC emacs-lisp
   (use-package org
     :init (setq org-directory my-org-directory
                 org-agenda-files my-org-agenda-files
