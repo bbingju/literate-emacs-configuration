@@ -745,7 +745,8 @@ c-mode나 c++-mode 에서 lsp 서버로 ccls를 사용한다. clangd도 괜찮�
     (add-hook 'python-mode-hook
               (function (lambda ()
                           (setq indent-tabs-mode nil
-                                tab-width 4)))))
+                                tab-width 4
+                                electric-indent-inhibit t)))))
 
   (use-package elpy
     :defer t
