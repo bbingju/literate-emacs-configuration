@@ -735,6 +735,15 @@ c-mode나 c++-mode 에서 lsp 서버로 ccls를 사용한다. clangd도 괜찮�
   ;;               ("C-M-\\" . clang-format-region)))
 #+END_SRC
 
+*** tree-sitter
+
+#+begin_src elisp
+  (add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
+  (add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
+  (add-to-list 'major-mode-remap-alist
+               '(c-or-c++-mode . c-or-c++-ts-mode))
+#+end_src
+
 ** Python
 
 #+BEGIN_SRC emacs-lisp
