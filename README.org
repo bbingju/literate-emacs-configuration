@@ -877,6 +877,17 @@ org-mode structure template에 python을 추가한다.
   (use-package yaml-mode)
 #+END_SRC
 
+** Conf
+
+#+begin_src elisp
+  (use-package conf-mode
+    :config 
+    (add-hook 'conf-mode-hook
+              (lambda ()
+                (setq indent-line-function #'insert-tab
+                      indent-tabs-mode     t))))
+#+end_src
+
 * Docker
 
 #+BEGIN_SRC emacs-lisp
