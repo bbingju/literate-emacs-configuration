@@ -369,8 +369,9 @@ This package requires the fonts included with =all-the-icons= to be installed. R
           (sequence "WAIT(w@/!)" "HOLD(h@/!)" "|" "CANCELED(c@/!)")))
 
   (setq org-capture-templates
-        '(("t" "Todo" entry (file+headline "~/Dropbox/org/inbox.org" "Todos")
+        '(("t" "📥 Todo" entry (file+headline "~/Dropbox/org/inbox.org" "Todos")
            "* TODO %?\n  %i\n  %a")
+          ("b" "📑 Bookmark" entry (file "~/Dropbox/org/bookmarks.org") "* %? %^g\n  %i\n" :prepend t)
           ("r" "To Read Item" entry (file+headline "~/Dropbox/org/inbox.org" "To Read Items") 
            "* %?\n  %T" :prepend t)))
 
