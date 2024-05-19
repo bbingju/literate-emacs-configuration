@@ -277,12 +277,19 @@ Hide =tool-bar= and =scroll-bar=.
     (doom-themes-org-config))
 #+END_SRC
 
-** dome-modeline
-This package requires the fonts included with =all-the-icons= to be installed. Run ~M-x all-the-icons-install-fonts~ to do so.
+** doom-modeline
+
+아이콘 폰트를 쓰기 위해서는 [[https://github.com/rainstormstudio/nerd-icons.el][nerd-icons]]을 설치해야 한다. ~M-x nerd-icons-install-fonts~ 명령으로 설치하면 된다.
 
 #+begin_src elisp
   (use-package doom-modeline
-    :init (doom-modeline-mode 1))
+    :hook (after-init . doom-modeline-mode)
+    :config
+    (setq doom-modeline-height 68)
+    (setq doom-modeline-project-detection 'auto))
+  ;; (setq doom-modeline-buffer-file-name-style 'auto)
+  ;; (setq doom-modeline-icon t)
+  ;; (setq doom-modeline-time-icon t))
 #+end_src
 
 ** Font setting
