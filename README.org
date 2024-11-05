@@ -378,7 +378,8 @@ Hide =tool-bar= and =scroll-bar=.
   (setq org-capture-templates
         '(("t" "📥 Todo" entry (file+headline "~/Dropbox/org/inbox.org" "Todos")
            "* TODO %?\n  %i\n  %a")
-          ("b" "📑 Bookmark" entry (file "~/Dropbox/org/bookmarks.org") "* %? %^g\n  %i\n" :prepend t)
+          ("b" "📑 Bookmark" entry (file "~/Dropbox/org/bookmarks.org") 
+           "* [[%^{링크 URL}][%^{링크 이름}]] %^g\n  %i\n" :prepend t)
           ("r" "To Read Item" entry (file+headline "~/Dropbox/org/inbox.org" "To Read Items") 
            "* %?\n  %T" :prepend t)))
 
