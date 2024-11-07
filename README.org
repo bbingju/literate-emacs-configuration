@@ -371,6 +371,14 @@ Hide =tool-bar= and =scroll-bar=.
                            "~/Dropbox/org/projects.org"
                            "~/Dropbox/org/repeaters.org"))
 
+  (setq org-refile-targets
+        '(("~/Dropbox/org/todo.org" :maxlevel . 3)
+          ("~/Dropbox/org/projects.org" :maxlevel . 2)))
+
+  (setq org-refile-use-outline-path 'file)
+  (setq org-outline-path-complete-in-steps nil)
+  (setq org-refile-allow-creating-parent-nodes 'confirm)
+
   (setq org-todo-keywords
         '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
           (sequence "WAIT(w@/!)" "HOLD(h@/!)" "|" "CANCELED(c@/!)")))
