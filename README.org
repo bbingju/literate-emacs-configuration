@@ -614,19 +614,14 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
 
 #+BEGIN_SRC emacs-lisp
   (use-package projectile
-    :after
-    (helm)
     :bind-keymap
     ("C-c p" . projectile-command-map)
     :init
     (projectile-mode +1)
-    :config
-    (use-package helm-projectile
-      :config (helm-projectile-on))
     :custom
     (projectile-enable-caching t)
     (projectile-indexing-method 'alien)
-    (projectile-completion-system 'helm))
+    (projectile-completion-system 'default))
 #+END_SRC
 
 
