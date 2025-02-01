@@ -153,7 +153,42 @@ If the file =~/.emacs.d/.custom.el= exist, load it.
     (load custom-file))
 #+END_SRC
 
-** Helm
+** Search and Selection Interface
+
+Helm이 유지보수되지 않는 것 같아 다른 대안을 써볼 계획이다. 우선 minibufer completion system으로 [[https://github.com/minad/vertico][vertico.el]]을 사용한다.
+
+#+begin_src elisp
+  (use-package vertico
+    :init
+    (vertico-mode))
+#+end_src
+
+completion 시스템 이용 시 찾고하 하는 아이템의 이름을 처음부터 입력하지 않아도 되게 [[https://github.com/oantolin/orderless][Orderless]]를 사용한다.
+
+#+begin_src elisp
+  (use-package orderless
+    :custom
+    (completion-styles '(orderless basic)))
+#+end_src
+
+[[https://github.com/minad/consult][consult.el]]도 사용한다.
+
+#+begin_src elisp
+  (use-package consult
+    :bind
+    (("C-x b" . consult-buffer)
+     ("M-g M-g" . consult-goto-line)))
+#+end_src
+
+minibuffer completion이 작동 중일 때 남은 영역에 추가 정보를 표시하게 하기 위해 [[https://github.com/minad/marginalia][marginalia.el]]을 사용한다.
+
+#+begin_src elisp
+  (use-package marginalia
+    :init
+    (marginalia-mode))
+#+end_src
+
+** COMMENT Helm
 #+BEGIN_SRC emacs-lisp
   (use-package helm
     :ensure t
