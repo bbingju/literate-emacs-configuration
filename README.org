@@ -598,7 +598,6 @@ Override line-numbers-mode in org-mode.
        (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
        (json "https://github.com/tree-sitter/tree-sitter-json")
        (make "https://github.com/alemuller/tree-sitter-make")
-       (markdown "https://github.com/ikatyang/tree-sitter-markdown")
        (python "https://github.com/tree-sitter/tree-sitter-python")
        (toml "https://github.com/tree-sitter/tree-sitter-toml")
        (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
@@ -998,9 +997,10 @@ org-mode structure template에 python을 추가한다.
 * markdown-mode
 #+BEGIN_SRC emacs-lisp
   (use-package markdown-mode
-    :mode ("\\.md\\'" . markdown-mode)
+    :mode
+    ("README\\.md\\'" . gfm-mode)
     :init
-    (autoload 'markdown-mode "markdown-mode" "Major mode for editing Markdown files" t))
+    (setq markdown-command "cmark-gfm"))
 #+END_SRC
 
 * [[http://jblevins.org/projects/deft/][Deft]]
