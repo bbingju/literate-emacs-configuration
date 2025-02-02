@@ -153,6 +153,13 @@ If the file =~/.emacs.d/.custom.el= exist, load it.
     (load custom-file))
 #+END_SRC
 
+** Default External Browser
+
+#+begin_src elisp
+  (setq browse-url-browser-function 'browse-url-generic)
+  (setq browse-url-generic-program "google-chrome")
+#+end_src
+
 ** Search and Selection Interface
 
 Helm이 유지보수되지 않는 것 같아 다른 대안을 써볼 계획이다. 우선 minibufer completion system으로 [[https://github.com/minad/vertico][vertico.el]]을 사용한다.
