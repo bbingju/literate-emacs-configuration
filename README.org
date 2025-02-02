@@ -1002,6 +1002,9 @@ org-mode structure template에 python을 추가한다.
 #+END_SRC
 
 * markdown-mode
+
+Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markdown-mode]]를 사용한다. =gfm-mode= 는 같이 포함된 모드로 github flaved markdown을 의미한다.
+
 #+BEGIN_SRC emacs-lisp
   (use-package markdown-mode
     :mode
