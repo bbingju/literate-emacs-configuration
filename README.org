@@ -630,6 +630,17 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
     (projectile-completion-system 'default))
 #+END_SRC
 
+** Eglot
+
+#+begin_src elisp
+  (use-package eglot
+    :config 
+    (add-to-list 'eglot-server-programs '((sh-mode bash-ts-mode) . ("bash-language-server" "start")))
+    (add-to-list 'eglot-server-programs '((python-mode python-ts-mode) . ("jedi-language-server")))
+    :hook (bash-ts-mode . eglot-ensure)
+    :bind (:map eglot-mode-map
+                  ("C-M-\\" . eglot-format)))
+#+end_src
 
 ** magit
 
