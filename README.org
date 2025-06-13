@@ -802,31 +802,23 @@ sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-languag
 
 ** C/C++
 
-c-mode나 c++-mode 에서 lsp 서버로 ccls를 사용한다. clangd도 괜찮은 것 같으나 임베디드 소스트리에서 작업할 때 네비게이션 문제가 있다.
-
-#+begin_src emacs-lisp
-  (use-package ccls
-    :hook ((c-mode c++-mode objc-mode sh-mode) .
-           (lambda () (require 'ccls) (eglot-ensure)))
-    :config (setq ccls-executable "~/.local/bin/ccls"))
+#+begin_src elisp
+  (require 'my-c-ts-mode)
 #+end_src
 
-#+BEGIN_SRC emacs-lisp
-  (c-add-style "my-c-style"
-               '("linux"
-                 (c-basic-offset . 4)))
+프로젝트에 `.clang-format` 파일이 있을 경우 자동으로 해당 설정을 따르도록 구성한다.
 
-  (setq c-default-style "my-c-style")
-#+END_SRC
-
-먼저 llvm을 설치해야한다.
-
-#+BEGIN_SRC emacs-lisp
-  ;; (use-package clang-format
-  ;;   :ensure t
-  ;;   :bind (:map c-mode-base-map
-  ;;               ("C-M-\\" . clang-format-region)))
-#+END_SRC
+#+begin_src emacs-lisp
+  (use-package clang-format
+    :ensure t
+    :bind (:map c-mode-base-map
+                ("C-M-\\" . clang-format-region)
+                ("C-c C-f" . clang-format-buffer))
+    :hook ((c-mode c++-mode c-ts-mode c++-ts-mode) . 
+           (lambda ()
+             ;; 저장 시 자동으로 clang-format 적용
+             (add-hook 'before-save-hook 'clang-format-buffer nil t))))
+#+end_src
 
 *** tree-sitter
 
