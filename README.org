@@ -383,6 +383,7 @@ Hide =tool-bar= and =scroll-bar=.
 #+begin_src emacs-lisp
   (use-package ob-http)
   (use-package ob-rust)
+  (use-package ob-mermaid)
 #+end_src
 
 #+BEGIN_SRC emacs-lisp
@@ -403,11 +404,12 @@ Hide =tool-bar= and =scroll-bar=.
         org-ditaa-jar-path "~/.emacs.d/ditaa.jar")
 
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
-                                                             (python . t)
-                                                             (ditaa . t)
-                                                             (emacs-lisp . t)
-                                                             (http . t)
-                                                             (rust . t)))
+                                                           (python . t)
+                                                           (ditaa . t)
+                                                           (mermaid . t)
+                                                           (emacs-lisp . t)
+                                                           (http . t)
+                                                           (rust . t)))
 
   (setq org-agenda-files '("~/Dropbox/org/inbox.org"
                            "~/Dropbox/org/projects.org"
@@ -493,6 +495,7 @@ Hide =tool-bar= and =scroll-bar=.
     (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
                                                              (python . t)
                                                              (ditaa . t)
+                                                             (mermaid . t)
                                                              (emacs-lisp . t)
                                                              (http . t)
                                                              (rust . t)))
