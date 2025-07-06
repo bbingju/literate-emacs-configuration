@@ -609,6 +609,7 @@ Override line-numbers-mode in org-mode.
        (json "https://github.com/tree-sitter/tree-sitter-json")
        (make "https://github.com/alemuller/tree-sitter-make")
        (python "https://github.com/tree-sitter/tree-sitter-python")
+       (rust "https://github.com/tree-sitter/tree-sitter-rust")
        (toml "https://github.com/tree-sitter/tree-sitter-toml")
        (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
        (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
@@ -865,6 +866,87 @@ sh-mode에서 활성화되려면 [[https://github.com/mads-hartmann/bash-languag
 #+END_SRC
 
 ** Rust
+
+eglot 기반의 Rust 개발 환경을 설정한다.
+
+#+begin_src elisp
+  (add-to-list 'major-mode-remap-alist '(rust-mode . rust-ts-mode))
+  (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
+
+  ;; Disable flycheck's rust checkers and use eglot instead
+  (with-eval-after-load 'flycheck
+    (setq-default flycheck-disabled-checkers '(rust-cargo rust rust-clippy)))
+
+  ;; Enhanced rust-analyzer configuration with eglot
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs
+                 '((rust-ts-mode rust-mode) .
+                   ("~/.local/bin/rust-analyzer" 
+                    :initializationOptions 
+                    (:check (:command "clippy")
+                     :cargo (:buildScripts (:enable t))
+                     :procMacro (:enable t)
+                     :rustfmt (:extraArgs ["--edition" "2021"])
+                     :inlayHints (:bindingModeHints (:enable t)
+                                  :chainingHints (:enable t)
+                                  :closingBraceHints (:enable t)
+                                  :lifetimeElisionHints (:enable t)
+                                  :parameterHints (:enable t)
+                                  :typeHints (:enable t)))))))
+
+  ;; Rust mode configuration
+  (use-package rust-mode
+    :config
+    (setq rust-format-on-save nil)  ; eglot으로 대체
+    (setq rust-indent-offset 4))
+
+  ;; ;; Enhanced key bindings for Rust
+  (defun my/rust-mode-setup ()
+    "Custom setup for Rust modes."
+    ;; eglot 연결 확인 후 활성화
+    (when (executable-find "rust-analyzer")
+      (eglot-ensure))
+    ;; 키바인딩 설정 (cargo-minor-mode 없이)
+    (local-set-key (kbd "C-c C-f") #'rust-format-buffer)
+    (local-set-key (kbd "C-c C-l") #'my/rust-run-clippy)
+    (local-set-key (kbd "C-c C-t") #'my/rust-test-current-file)
+    (local-set-key (kbd "C-c C-d") #'eglot-find-declaration)
+    (local-set-key (kbd "C-c C-i") #'eglot-find-implementation)
+    (local-set-key (kbd "C-c C-r") #'eglot-rename)
+    (local-set-key (kbd "C-c C-a") #'eglot-code-actions)
+    (local-set-key (kbd "C-c C-h") #'eldoc-doc-buffer)
+    ;; Cargo commands
+    (local-set-key (kbd "C-c C-c C-b") #'cargo-process-build)
+    (local-set-key (kbd "C-c C-c C-r") #'cargo-process-run)
+    (local-set-key (kbd "C-c C-c C-t") #'cargo-process-test)
+    (local-set-key (kbd "C-c C-c C-c") #'cargo-process-check)
+    (local-set-key (kbd "C-c C-c C-l") #'cargo-process-clippy)
+    (local-set-key (kbd "C-c C-c C-d") #'cargo-process-doc)
+    ;; Auto-format on save (eglot이 연결되었을 때만)
+    (when (and (featurep 'eglot) (eglot-current-server))
+      (add-hook 'before-save-hook #'eglot-format-buffer nil t)))
+
+  (defun my/rust-ts-mode-setup ()
+    "Custom setup for rust-ts-mode."
+    (my/rust-mode-setup)
+    ;; Ensure syntax highlighting is enabled
+    (when (treesit-language-available-p 'rust)
+      (treesit-parser-create 'rust)
+      (font-lock-mode 1)
+      (treesit-font-lock-recompute-features)))
+
+  (add-hook 'rust-mode-hook #'my/rust-mode-setup)
+  (add-hook 'rust-ts-mode-hook #'my/rust-ts-mode-setup)
+
+  ;; Additional Rust utilities
+  (use-package rust-playground
+    :bind ("C-c C-p" . rust-playground))
+
+  (use-package toml-mode
+    :mode "\\.toml\\'")
+#+end_src
+
+** COMMENT Rust
 
 #+begin_src emacs-lisp
   ;; (setq exec-path (append exec-path '("~/.cargo/bin")))
