@@ -259,6 +259,37 @@ cannot change `helm-command-prefix-key' once `helm-config' is loaded.
   (global-unset-key (kbd "C-x c"))
 #+END_SRC
 
+** Tramp
+#+begin_src elisp
+  ;; Set default coding system for tramp
+  (setq tramp-default-method "ssh")
+  (setq tramp-encoding-shell "/bin/sh")
+  (setq tramp-terminal-type "dumb")
+
+  ;; Force UTF-8 encoding
+  (setq tramp-remote-coding-commands
+        '((b64 "base64" "base64 -d -i")
+          (b64 "base64" "base64 -d")
+          (b64 "openssl enc -base64" "openssl enc -d -base64")
+          (b64 "mimencode -b" "mimencode -u -b")
+          (b64 "mmencode -b" "mmencode -u -b")
+          (b64 "recode data..base64" "recode base64..data")
+          (b64 "uuencode xxx" "uudecode -o /dev/stdout")
+          (b64 "uuencode xxx" "uudecode -o -")
+          (b64 "uuencode xxx" "uudecode -p")
+          (b64 "uuencode xxx" "uudecode")
+          (uu  "uuencode xxx" "uudecode -o /dev/stdout")
+          (uu  "uuencode xxx" "uudecode -o -")
+          (uu  "uuencode xxx" "uudecode -p")
+          (uu  "uuencode xxx" "uudecode")
+          (pack "perl -e 'binmode STDIN; binmode STDOUT; print pack(q{u*}, join q{}, <>)'"
+                "perl -e 'binmode STDIN; binmode STDOUT; print unpack(q{u*}, join q{}, <>)'")))
+
+  ;; Set proper locale
+  (setq tramp-remote-shell-executable "/bin/bash")
+  ;; (add-to-list 'tramp-remote-path "/usr/local/bin")
+#+end_src
+
 ** Others
 
 text-mode를 사용할 경우 visual-line-mode를 활성화 한다.
