@@ -881,18 +881,18 @@ eglot 기반의 Rust 개발 환경을 설정한다.
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs
                  '((rust-ts-mode rust-mode) .
-                   ("~/.local/bin/rust-analyzer" 
+                   ("~/.cargo/bin/rust-analyzer" 
                     :initializationOptions 
                     (:check (:command "clippy")
-                     :cargo (:buildScripts (:enable t))
-                     :procMacro (:enable t)
-                     :rustfmt (:extraArgs ["--edition" "2021"])
-                     :inlayHints (:bindingModeHints (:enable t)
-                                  :chainingHints (:enable t)
-                                  :closingBraceHints (:enable t)
-                                  :lifetimeElisionHints (:enable t)
-                                  :parameterHints (:enable t)
-                                  :typeHints (:enable t)))))))
+                            :cargo (:buildScripts (:enable t))
+                            :procMacro (:enable t)
+                            :rustfmt (:extraArgs ["--edition" "2024"])
+                            :inlayHints (:bindingModeHints (:enable t)
+                                                           :chainingHints (:enable t)
+                                                           :closingBraceHints (:enable t)
+                                                           :lifetimeElisionHints (:enable t)
+                                                           :parameterHints (:enable t)
+                                                           :typeHints (:enable t)))))))
 
   ;; Rust mode configuration
   (use-package rust-mode
@@ -900,7 +900,10 @@ eglot 기반의 Rust 개발 환경을 설정한다.
     (setq rust-format-on-save nil)  ; eglot으로 대체
     (setq rust-indent-offset 4))
 
-  ;; ;; Enhanced key bindings for Rust
+  (use-package cargo
+    :hook (rust-ts-mode . cargo-minor-mode))
+
+  ;; Enhanced key bindings for Rust
   (defun my/rust-mode-setup ()
     "Custom setup for Rust modes."
     ;; eglot 연결 확인 후 활성화
