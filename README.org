@@ -669,10 +669,12 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
 
 #+begin_src elisp
   (use-package eglot
-    :config 
-    (add-to-list 'eglot-server-programs '((sh-mode bash-ts-mode) . ("bash-language-server" "start")))
-    (add-to-list 'eglot-server-programs '((python-mode python-ts-mode) . ("jedi-language-server")))
-    :hook (bash-ts-mode . eglot-ensure)
+    :config
+    (dolist (servers '(((sh-mode bash-ts-mode) . ("bash-language-server" "start"))
+                       ((python-mode python-ts-mode) . ("jedi-language-server"))
+                       ((cmake-mode cmake-ts-mode) . ("cmake-language-server"))))
+      (add-to-list 'eglot-server-programs servers))
+    :hook ((bash-ts-mode cmake-ts-mode) . eglot-ensure)
     :bind (:map eglot-mode-map
                   ("C-M-\\" . eglot-format)))
 #+end_src
@@ -687,6 +689,55 @@ This is an awesome plugin as git client.
                magit-status)
     :bind ("C-x g" . magit-status))
 #+END_SRC
+
+** CMake
+#+begin_src elisp
+  ;; First ensure cmake-mode is available for its documentation functions
+  (use-package cmake-mode
+    :ensure t
+    :config
+    ;; Don't auto-enable cmake-mode since we're using cmake-ts-mode
+    ;; But keep it available for its documentation functions
+    )
+
+  ;; Setup for cmake-ts-mode (Tree-sitter based)
+  (defun my/cmake-ts-mode-setup ()
+    "Setup cmake-ts-mode with documentation features"
+    ;; Enable eldoc for inline help
+    (eldoc-mode 1)
+    ;; Set up key bindings for documentation
+    (local-set-key (kbd "C-c h") 'cmake-help-command)
+    (local-set-key (kbd "C-c m") 'cmake-help-module)
+    (local-set-key (kbd "C-c v") 'cmake-help-variable)
+    (local-set-key (kbd "C-c p") 'cmake-help-property)
+    (local-set-key (kbd "C-c C-d") 'my/cmake-browse-documentation)
+    (local-set-key (kbd "C-c C-s") 'my/cmake-search-documentation))
+
+
+  ;; Function to open CMake documentation in browser
+  (defun my/cmake-browse-documentation (command)
+    "Open CMake documentation for COMMAND in browser"
+    (interactive (list (read-string "CMake command: " 
+                                    (thing-at-point 'symbol t))))
+    (let ((url (format "https://cmake.org/cmake/help/latest/command/%s.html" 
+                       (downcase command))))
+      (browse-url url)))
+
+  ;; Quick search in CMake documentation
+  (defun my/cmake-search-documentation ()
+    "Search CMake documentation online"
+    (interactive)
+    (let ((query (read-string "Search CMake docs: ")))
+      (browse-url (format "https://cmake.org/cmake/help/latest/search.html?q=%s" 
+                          (url-hexify-string query)))))
+
+  ;; Hook for cmake-ts-mode
+  (add-hook 'cmake-ts-mode-hook 'my/cmake-ts-mode-setup)
+
+  ;; Make sure cmake-ts-mode is used for cmake files
+  (add-to-list 'auto-mode-alist '("CMakeLists\\.txt\\'" . cmake-ts-mode))
+  (add-to-list 'auto-mode-alist '("\\.cmake\\'" . cmake-ts-mode))
+#+end_src
 
 ** A hook for compilation buffer using ansi-color
 
