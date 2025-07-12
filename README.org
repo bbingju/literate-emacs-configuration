@@ -1249,4 +1249,78 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
     :init (setq rfc-mode-directory (expand-file-name "~/Dropbox/resources/rfc/")))
 #+end_src
 
+** Claude CLI Integration
+
+Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한다.
+우선, Cluade CLI가 우선 [[https://docs.anthropic.com/en/docs/claude-code/setup][설치]]되어 있어야 한다. 그리고 =libvterm= 이 시스템에 설치되어 있어야 한다. Ubuntu에서는 =sudo apt install libvterm-dev= 명령으로 설치할 수 있다.
+
+#+begin_src emacs-lisp
+  ;; vterm 패키지 설정 (Claude CLI 대화형 세션용)
+  (use-package vterm
+    :bind ("C-c t" . vterm)
+    :config
+    (setq vterm-max-scrollback 10000)
+    (setq vterm-buffer-name-string "vterm %s"))
+
+  ;; Claude CLI 대화형 세션 시작
+  (defun claude-vterm ()
+    "Start Claude CLI in vterm"
+    (interactive)
+    (let ((vterm-shell "claude"))
+      (vterm)))
+
+  ;; 선택된 영역을 Claude에 보내기
+  (defun claude-send-region (start end)
+    "Send selected region to Claude CLI"
+    (interactive "r")
+    (let ((text (buffer-substring-no-properties start end)))
+      (with-temp-buffer
+        (insert text)
+        (shell-command-on-region (point-min) (point-max) 
+                                 "claude --print" 
+                                 "*Claude Output*"))))
+
+  ;; 전체 버퍼를 Claude에 보내기
+  (defun claude-send-buffer ()
+    "Send entire buffer to Claude CLI"
+    (interactive)
+    (claude-send-region (point-min) (point-max)))
+
+  ;; Claude에게 질문하기
+  (defun claude-ask (prompt)
+    "Ask Claude a question and display result"
+    (interactive "sAsk Claude: ")
+    (let ((output (shell-command-to-string 
+                   (format "claude --print \"%s\"" 
+                           (shell-quote-argument prompt)))))
+      (with-current-buffer (get-buffer-create "*Claude Response*")
+        (erase-buffer)
+        (insert output)
+        (when (fboundp 'markdown-mode)
+          (markdown-mode))
+        (goto-char (point-min))
+        (display-buffer (current-buffer)))))
+
+  ;; 프로젝트 루트에서 Claude 세션 시작
+  (defun claude-project ()
+    "Start Claude CLI in project root"
+    (interactive)
+    (let ((default-directory (if (fboundp 'projectile-project-root)
+                                 (projectile-project-root)
+                               default-directory)))
+      (if (fboundp 'vterm-other-window)
+          (progn
+            (vterm-other-window)
+            (vterm-send-string "claude")
+            (vterm-send-return))
+        (message "vterm package not available"))))
+
+  ;; 키바인딩 설정
+  (global-set-key (kbd "C-c C-l c") 'claude-vterm)
+  (global-set-key (kbd "C-c C-l r") 'claude-send-region)
+  (global-set-key (kbd "C-c C-l b") 'claude-send-buffer)
+  (global-set-key (kbd "C-c C-l a") 'claude-ask)
+  (global-set-key (kbd "C-c C-l p") 'claude-project)
+#+end_src
+
 
