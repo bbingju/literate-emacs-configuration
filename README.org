@@ -586,19 +586,31 @@ This json babel taken from https://isamert.net/2022/01/04/dealing-with-apis-json
           (node (cdr (assoc :node params))))
       (cond
        (jq
+        (unless (executable-find "jq")
+          (user-error "jq command not found. Please install jq"))
         (with-temp-buffer
           ;; Insert the JSON into the temp buffer
           (insert body)
-          ;; Run jq command on the whole buffer, and replace the buffer
-          ;; contents with the result returned from jq
-          (shell-command-on-region (point-min) (point-max) (format "jq -r \"%s\"" jq) nil 't)
+          ;; Run jq command on the whole buffer using call-process-region
+          ;; This avoids shell injection by passing jq filter as a direct argument
+          (let ((exit-code (call-process-region
+                           (point-min) (point-max)
+                           "jq" t t nil "-r" jq)))
+            (unless (zerop exit-code)
+              (error "jq command failed with exit code %d" exit-code)))
           ;; Return the contents of the temp buffer as the result
           (buffer-string)))
        (node
+        (unless (executable-find "node")
+          (user-error "node command not found. Please install Node.js"))
         (with-temp-buffer
           (insert (format "const it = %s;" body))
           (insert node)
-          (shell-command-on-region (point-min) (point-max) "node -p" nil 't)
+          (let ((exit-code (call-process-region
+                           (point-min) (point-max)
+                           "node" t t nil "-p")))
+            (unless (zerop exit-code)
+              (error "node command failed with exit code %d" exit-code)))
           (buffer-string))))))
 #+end_src
 
@@ -1271,16 +1283,35 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
     (let ((vterm-shell "claude"))
       (vterm)))
 
+  ;; Claude CLI 실행 가능 여부 확인
+  (defun claude-executable-find ()
+    "Check if Claude CLI is available and return its path."
+    (or (executable-find "claude")
+        (user-error "Claude CLI not found. Please install it from https://docs.anthropic.com/en/docs/claude-code/setup")))
+
   ;; 선택된 영역을 Claude에 보내기
   (defun claude-send-region (start end)
     "Send selected region to Claude CLI"
     (interactive "r")
-    (let ((text (buffer-substring-no-properties start end)))
-      (with-temp-buffer
+    (let ((claude-path (claude-executable-find))
+          (text (buffer-substring-no-properties start end)))
+      (with-current-buffer (get-buffer-create "*Claude Output*")
+        (erase-buffer)
+        (let ((exit-code (call-process-region
+                          nil nil
+                          claude-path
+                          nil t nil
+                          "--print")))
+          (unless (zerop exit-code)
+            (error "Claude CLI failed with exit code %d" exit-code)))
+        ;; Insert the text after the buffer is created
+        (goto-char (point-min))
         (insert text)
-        (shell-command-on-region (point-min) (point-max) 
-                                 "claude --print" 
-                                 "*Claude Output*"))))
+        (call-process-region (point-min) (point-max)
+                            claude-path
+                            t t nil
+                            "--print")
+        (display-buffer (current-buffer)))))
 
   ;; 전체 버퍼를 Claude에 보내기
   (defun claude-send-buffer ()
@@ -1292,12 +1323,12 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
   (defun claude-ask (prompt)
     "Ask Claude a question and display result"
     (interactive "sAsk Claude: ")
-    (let ((output (shell-command-to-string 
-                   (format "claude --print \"%s\"" 
-                           (shell-quote-argument prompt)))))
+    (let ((claude-path (claude-executable-find)))
       (with-current-buffer (get-buffer-create "*Claude Response*")
         (erase-buffer)
-        (insert output)
+        (let ((exit-code (call-process claude-path nil t nil "--print" prompt)))
+          (unless (zerop exit-code)
+            (error "Claude CLI failed with exit code %d" exit-code)))
         (when (fboundp 'markdown-mode)
           (markdown-mode))
         (goto-char (point-min))
