@@ -89,7 +89,8 @@ GUI 모드나 맥 환경에서 emacs를 실행하면 설정되어 있던 =PATH= 
 
 #+begin_src emacs-lisp
   (use-package exec-path-from-shell
-    :if (memq window-system '(darwin mac ns x))
+    :if (or (memq window-system '(darwin mac ns x))
+            (daemonp))
     :ensure t
     :config
     (exec-path-from-shell-initialize))
@@ -1286,10 +1287,16 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
   ;; Claude CLI 실행 가능 여부 확인
   (defun claude-executable-find ()
     "Check if Claude CLI is available and return its path."
-    (let ((claude-path (executable-find "claude")))
+    (let ((claude-path (or (executable-find "claude")
+                           ;; Check common installation paths
+                           (seq-find #'file-executable-p
+                                     '("/opt/node22/bin/claude"
+                                       "~/.local/bin/claude"
+                                       "~/bin/claude"
+                                       "/usr/local/bin/claude")))))
       (unless claude-path
         (user-error "Claude CLI not found. Please install it from https://docs.anthropic.com/en/docs/claude-code/setup"))
-      claude-path))
+      (expand-file-name claude-path)))
 
   ;; 선택된 영역을 Claude에 보내기
   (defun claude-send-region (start end)
