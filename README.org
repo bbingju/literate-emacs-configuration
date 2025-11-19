@@ -1286,8 +1286,10 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
   ;; Claude CLI 실행 가능 여부 확인
   (defun claude-executable-find ()
     "Check if Claude CLI is available and return its path."
-    (or (executable-find "claude")
-        (user-error "Claude CLI not found. Please install it from https://docs.anthropic.com/en/docs/claude-code/setup")))
+    (let ((claude-path (executable-find "claude")))
+      (unless claude-path
+        (user-error "Claude CLI not found. Please install it from https://docs.anthropic.com/en/docs/claude-code/setup"))
+      claude-path))
 
   ;; 선택된 영역을 Claude에 보내기
   (defun claude-send-region (start end)
@@ -1295,23 +1297,16 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
     (interactive "r")
     (let ((claude-path (claude-executable-find))
           (text (buffer-substring-no-properties start end)))
-      (with-current-buffer (get-buffer-create "*Claude Output*")
-        (erase-buffer)
+      (with-temp-buffer
+        (insert text)
         (let ((exit-code (call-process-region
-                          nil nil
+                          (point-min) (point-max)
                           claude-path
-                          nil t nil
+                          t "*Claude Output*" nil
                           "--print")))
           (unless (zerop exit-code)
-            (error "Claude CLI failed with exit code %d" exit-code)))
-        ;; Insert the text after the buffer is created
-        (goto-char (point-min))
-        (insert text)
-        (call-process-region (point-min) (point-max)
-                            claude-path
-                            t t nil
-                            "--print")
-        (display-buffer (current-buffer)))))
+            (error "Claude CLI failed with exit code %d" exit-code))))
+      (display-buffer "*Claude Output*")))
 
   ;; 전체 버퍼를 Claude에 보내기
   (defun claude-send-buffer ()
