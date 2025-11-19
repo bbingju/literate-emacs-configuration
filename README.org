@@ -1291,6 +1291,7 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
                            ;; Check common installation paths
                            (seq-find #'file-executable-p
                                      '("/opt/node22/bin/claude"
+                                       "~/.claude/local/claude"
                                        "~/.local/bin/claude"
                                        "~/bin/claude"
                                        "/usr/local/bin/claude")))))
