@@ -664,11 +664,27 @@ This is an awesome plugin as git client.
     "Setup cmake-ts-mode with documentation features"
     ;; Enable eldoc for inline help
     (eldoc-mode 1)
+
+    ;; Enhanced function to describe CMake thing at point
+    (defun my-cmake-describe-thing-at-point ()
+      "Describe CMake command, variable, module, or property at point."
+      (interactive)
+      (let ((thing (thing-at-point 'symbol t)))
+        (when thing
+          (cond
+           ((string-prefix-p "CMAKE_" (upcase thing))
+            (cmake-help-variable thing))
+           ((string-match-p "^[A-Z_]+$" thing)
+            (cmake-help-variable thing))
+           (t (cmake-help-command thing))))))
+
     ;; Set up key bindings for documentation
     (local-set-key (kbd "C-c h") 'cmake-help-command)
     (local-set-key (kbd "C-c m") 'cmake-help-module)
     (local-set-key (kbd "C-c v") 'cmake-help-variable)
-    (local-set-key (kbd "C-c p") 'cmake-help-property)
+    ;; Use C-c r instead of C-c p to avoid conflict with projectile
+    (local-set-key (kbd "C-c r") 'cmake-help-property)
+    (local-set-key (kbd "C-h f") 'my-cmake-describe-thing-at-point)
     (local-set-key (kbd "C-c C-d") 'my/cmake-browse-documentation)
     (local-set-key (kbd "C-c C-s") 'my/cmake-search-documentation))
 

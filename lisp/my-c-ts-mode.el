@@ -47,20 +47,35 @@
   (if (my/clang-format-available-p)
       (let ((clang-format-style-option "file"))
         (clang-format-buffer))
-    (indent-for-tab-command)))
+    ;; If eglot is running, use its formatting instead
+    (if (and (featurep 'eglot) (eglot-current-server))
+        (eglot-format-buffer)
+      (indent-for-tab-command))))
 
 (defun my/c-ts-mode-setup ()
   "Custom indentation and tooling for `c-ts-mode'."
   (setq-local indent-tabs-mode t
               tab-width 8
               c-ts-mode-indent-offset 8)
+  ;; Enable electric-pair-mode as recommended for tree-sitter C/C++ modes
+  (electric-pair-local-mode 1)
   ;; Bind TAB to smart clang-format/indent.
   (local-set-key (kbd "TAB") #'my/clang-format-buffer-smart)
   ;; Optional before-save hook.
   (when my/c-ts-mode-format-on-save
-    (add-hook 'before-save-hook #'my/clang-format-buffer-smart nil t)))
+    (add-hook 'before-save-hook #'my/clang-format-buffer-smart nil t))
+  ;; Additional eglot keybindings for C/C++ (set after eglot connects)
+  (add-hook 'eglot-managed-mode-hook
+            (lambda ()
+              (when (derived-mode-p 'c-ts-mode 'c++-ts-mode)
+                (local-set-key (kbd "C-c C-r") #'eglot-rename)
+                (local-set-key (kbd "C-c C-a") #'eglot-code-actions)
+                (local-set-key (kbd "C-c C-d") #'eglot-find-declaration)
+                (local-set-key (kbd "C-c C-i") #'eglot-find-implementation)))
+            nil t))
 
 (add-hook 'c-ts-mode-hook #'my/c-ts-mode-setup)
+(add-hook 'c++-ts-mode-hook #'my/c-ts-mode-setup)
 
 ;;;###autoload
 (defun my/toggle-c-ts-format-on-save ()
