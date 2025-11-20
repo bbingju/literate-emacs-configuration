@@ -633,7 +633,7 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
                        ((c-mode c-ts-mode) . ("clangd"))
                        ((c++-mode c++-ts-mode) . ("clangd"))))
       (add-to-list 'eglot-server-programs servers))
-    :hook ((bash-ts-mode cmake-ts-mode) . eglot-ensure)
+    :hook ((bash-ts-mode cmake-ts-mode c-ts-mode c++-ts-mode) . eglot-ensure)
     :bind (:map eglot-mode-map
                   ("C-M-\\" . eglot-format)))
 #+end_src
