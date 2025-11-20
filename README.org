@@ -353,7 +353,13 @@ Hide =tool-bar= and =scroll-bar=.
 #+begin_src emacs-lisp
   (use-package ob-http)
   (use-package ob-rust)
-  (use-package ob-mermaid)
+  (use-package ob-mermaid
+    :config
+    (setq ob-mermaid-cli-path "mmdc")
+    ;; Only set Chrome path if it exists
+    (when (file-executable-p "/opt/google/chrome/chrome")
+      (setenv "PUPPETEER_EXECUTABLE_PATH" "/opt/google/chrome/chrome")
+      (setenv "PUPPETEER_ARGS" "--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage")))
 #+end_src
 
 #+BEGIN_SRC emacs-lisp
