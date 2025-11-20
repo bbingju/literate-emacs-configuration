@@ -625,15 +625,58 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
 ** Eglot
 
 #+begin_src elisp
+  ;; Helper function to find jdtls installation
+  (defun my/find-jdtls-installation ()
+    "Find jdtls installation directory and return configuration list.
+  Searches in common locations: ~/.vscode/extensions, ~/.local/share/nvim/mason/packages/jdtls"
+    (let* ((vscode-ext-dir (expand-file-name "~/.vscode/extensions"))
+           (mason-jdtls-dir (expand-file-name "~/.local/share/nvim/mason/packages/jdtls"))
+           (jdtls-dir
+            (cond
+             ;; Check mason installation first
+             ((file-directory-p mason-jdtls-dir) mason-jdtls-dir)
+             ;; Check VSCode extensions
+             ((file-directory-p vscode-ext-dir)
+              (car (directory-files vscode-ext-dir t "redhat\\.java-.*-linux-x64$" t)))
+             (t nil))))
+
+      (when jdtls-dir
+        (let* ((plugins-dir (expand-file-name "plugins"
+                                              (if (string-match "mason" jdtls-dir)
+                                                  jdtls-dir
+                                                (expand-file-name "server" jdtls-dir))))
+               (launcher-jar (car (directory-files plugins-dir t "org\\.eclipse\\.equinox\\.launcher_.*\\.jar$" t)))
+               (config-dir (cond
+                           ((string-match "mason" jdtls-dir)
+                            (expand-file-name "config_linux" jdtls-dir))
+                           (t (expand-file-name "server/config_linux" jdtls-dir))))
+               (workspace-dir (expand-file-name "~/.cache/jdtls-workspace")))
+
+          (when (and launcher-jar (file-exists-p launcher-jar)
+                     (file-directory-p config-dir))
+            (list "java"
+                  "-Declipse.application=org.eclipse.jdt.ls.core.id1"
+                  "-Dosgi.bundles.defaultStartLevel=4"
+                  "-Declipse.product=org.eclipse.jdt.ls.core.product"
+                  "-Dlog.protocol=true"
+                  "-Dlog.level=ALL"
+                  "-Xms1g" "-Xmx2G"
+                  "-jar" launcher-jar
+                  "-configuration" config-dir
+                  "-data" workspace-dir))))))
+
   (use-package eglot
     :config
-    (dolist (servers '(((sh-mode bash-ts-mode) . ("bash-language-server" "start"))
-                       ((python-mode python-ts-mode) . ("jedi-language-server"))
-                       ((cmake-mode cmake-ts-mode) . ("cmake-language-server"))
-                       ((c-mode c-ts-mode) . ("clangd"))
-                       ((c++-mode c++-ts-mode) . ("clangd"))))
-      (add-to-list 'eglot-server-programs servers))
-    :hook ((bash-ts-mode cmake-ts-mode c-ts-mode c++-ts-mode) . eglot-ensure)
+    (let ((jdtls-config (my/find-jdtls-installation)))
+      (dolist (servers `(((sh-mode bash-ts-mode) . ("bash-language-server" "start"))
+                         ((python-mode python-ts-mode) . ("jedi-language-server"))
+                         ((cmake-mode cmake-ts-mode) . ("cmake-language-server"))
+                         ((c-mode c-ts-mode) . ("clangd"))
+                         ((c++-mode c++-ts-mode) . ("clangd"))
+                         ,@(when jdtls-config
+                             `(((java-mode) . ,jdtls-config)))))
+        (add-to-list 'eglot-server-programs servers)))
+    :hook ((bash-ts-mode cmake-ts-mode c-ts-mode c++-ts-mode java-mode) . eglot-ensure)
     :bind (:map eglot-mode-map
                   ("C-M-\\" . eglot-format)))
 #+end_src
