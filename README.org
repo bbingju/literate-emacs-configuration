@@ -1200,11 +1200,12 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
         (message "vterm package not available"))))
 
   ;; 키바인딩 설정
-  (global-set-key (kbd "C-c C-l c") 'claude-vterm)
-  (global-set-key (kbd "C-c C-l r") 'claude-send-region)
-  (global-set-key (kbd "C-c C-l b") 'claude-send-buffer)
-  (global-set-key (kbd "C-c C-l a") 'claude-ask)
-  (global-set-key (kbd "C-c C-l p") 'claude-project)
+  ;; C-c A prefix for Claude/AI commands (A = AI/Assistant)
+  (global-set-key (kbd "C-c A c") 'claude-vterm)      ; C-c A c: start Claude vterm
+  (global-set-key (kbd "C-c A r") 'claude-send-region) ; C-c A r: send region
+  (global-set-key (kbd "C-c A b") 'claude-send-buffer) ; C-c A b: send buffer
+  (global-set-key (kbd "C-c A a") 'claude-ask)         ; C-c A a: ask question
+  (global-set-key (kbd "C-c A p") 'claude-project)     ; C-c A p: project session
 #+end_src
 
 
