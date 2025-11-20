@@ -1129,8 +1129,13 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
   (defun claude-vterm ()
     "Start Claude CLI in vterm"
     (interactive)
-    (let ((vterm-shell "claude"))
-      (vterm)))
+    (let ((claude-path (claude-executable-find)))
+      (if (fboundp 'vterm)
+          (progn
+            (vterm)
+            (vterm-send-string claude-path)
+            (vterm-send-return))
+        (user-error "vterm package not available. Install with: M-x package-install RET vterm"))))
 
   ;; Claude CLI 실행 가능 여부 확인
   (defun claude-executable-find ()
@@ -1189,15 +1194,16 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
   (defun claude-project ()
     "Start Claude CLI in project root"
     (interactive)
-    (let ((default-directory (if (fboundp 'projectile-project-root)
+    (let ((claude-path (claude-executable-find))
+          (default-directory (if (fboundp 'projectile-project-root)
                                  (projectile-project-root)
                                default-directory)))
       (if (fboundp 'vterm-other-window)
           (progn
             (vterm-other-window)
-            (vterm-send-string "claude")
+            (vterm-send-string claude-path)
             (vterm-send-return))
-        (message "vterm package not available"))))
+        (user-error "vterm package not available. Install with: M-x package-install RET vterm"))))
 
   ;; 키바인딩 설정
   (global-set-key (kbd "C-c C-l c") 'claude-vterm)
