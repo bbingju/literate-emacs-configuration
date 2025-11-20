@@ -104,11 +104,12 @@ I need this configuration.
   (when enable-multibyte-characters
     (set-language-environment "Korean")
     (setq-default file-name-coding-system 'utf-8)
-    (setq default-input-method "korean-hangul")
     (prefer-coding-system 'utf-8)
-    (set-default-coding-systems 'utf-8))
+    (set-default-coding-systems 'utf-8)
+    (global-set-key (kbd "S-SPC") 'toggle-input-method))
 
   (when-windows (set-file-name-coding-system 'euc-kr)
+                (setq default-input-method "korean-hangul")
                 (global-set-key (kbd "S-SPC") 'toggle-input-method)
                 (global-set-key (kbd "<Hangul>") 'toggle-input-method)
                 (global-set-key (kbd "<Hangul_Hanja>") 'hangul-to-hanja-conversion))
