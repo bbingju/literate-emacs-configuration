@@ -297,10 +297,14 @@ Hide =tool-bar= and =scroll-bar=.
     :hook (after-init . doom-modeline-mode)
     :config
     (setq doom-modeline-height 68)
-    (setq doom-modeline-project-detection 'auto))
-  ;; (setq doom-modeline-buffer-file-name-style 'auto)
-  ;; (setq doom-modeline-icon t)
-  ;; (setq doom-modeline-time-icon t))
+    (setq doom-modeline-project-detection 'auto)
+    (setq doom-modeline-buffer-file-name-style 'truncate-upto-project)
+
+    ;; 파일 이름 시인성 개선: 더 밝고 눈에 띄는 색상 적용
+    (custom-set-faces
+     '(doom-modeline-buffer-file ((t (:inherit mode-line-buffer-id :weight bold))))
+     '(doom-modeline-buffer-path ((t (:inherit mode-line-emphasis :weight bold))))
+     '(mode-line-buffer-id ((t (:foreground "#4ec9b0" :weight bold))))))
 #+end_src
 
 ** Font setting
