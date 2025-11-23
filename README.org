@@ -715,6 +715,10 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
   (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
   (add-hook 'comint-output-filter-functions 'comint-strip-ctrl-m)
 
+  ;; carriage return (\r)이 제대로 작동하도록 설정
+  ;; 이것이 nil이면 진행 표시줄이 같은 줄을 덮어쓸 수 있음
+  (setq comint-inhibit-carriage-motion nil)
+
   ;; eshell에서 ANSI 색상 처리
   (add-hook 'eshell-preoutput-filter-functions 'ansi-color-filter-apply)
   (add-hook 'eshell-before-prompt-hook
@@ -732,8 +736,13 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
               (add-hook 'comint-output-filter-functions
                         'comint-osc-process-output nil t)
               (add-hook 'comint-output-filter-functions
-                        'ansi-color-process-output nil t)))
+                        'ansi-color-process-output nil t)
+              ;; carriage return 처리 활성화
+              (add-hook 'comint-output-filter-functions
+                        'comint-carriage-motion nil t)))
 #+end_src
+
+참고: shell-mode는 완전한 터미널 에뮬레이터가 아니므로 복잡한 진행 표시줄(APT, npm 등)은 완벽하게 표시되지 않을 수 있습니다. 더 나은 터미널 경험을 원하시면 =vterm= 사용을 권장합니다 (~M-x vterm~ 또는 ~C-c t~).
 
 ** Coding convention
 
