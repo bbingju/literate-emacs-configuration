@@ -442,14 +442,27 @@ Hide =tool-bar= and =scroll-bar=.
   (advice-add 'org-todo :after (func-ignore #'org-save-all-org-buffers))
 
   (require 'color)
-  (set-face-attribute 'org-block nil :background
-                      (color-darken-name
-                       (face-attribute 'default :background) 3))
+
+  ;; Set org-block background color only when frame exists
+  (defun my/set-org-block-background ()
+    "Set org-block background color, only when default face has a valid background."
+    (when (display-graphic-p)
+      (let ((bg (face-attribute 'default :background)))
+        (when (and bg (not (eq bg 'unspecified)))
+          (set-face-attribute 'org-block nil :background
+                              (color-darken-name bg 3))))))
+
+  ;; Apply immediately if frame exists, otherwise wait for frame creation
+  (if (daemonp)
+      (add-hook 'after-make-frame-functions
+                (lambda (frame)
+                  (with-selected-frame frame
+                    (my/set-org-block-background))))
+    (my/set-org-block-background))
 
   (use-package org-bullets
     :requires org
     :hook (org-mode . (lambda () (org-bullets-mode 1))))
-
 #+end_src
 
 
