@@ -605,6 +605,8 @@ Override line-numbers-mode in org-mode.
 #+begin_src elisp
   (setq treesit-language-source-alist
      '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+       (c "http://github.com/tree-sitter/tree-sitter-c")
+       (cpp "https://github.com/tree-sitter/tree-sitter-cpp")
        (cmake "https://github.com/uyha/tree-sitter-cmake")
        (css "https://github.com/tree-sitter/tree-sitter-css")
        (elisp "https://github.com/Wilfred/tree-sitter-elisp")
