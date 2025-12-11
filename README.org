@@ -1117,7 +1117,7 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
     :mode
     ("README\\.md\\'" . gfm-mode)
     :init
-    (setq markdown-command "cmark-gfm"))
+    (setq markdown-command "cmark-gfm -e table -e autolink -e strikethrough -e tasklist"))
 #+END_SRC
 
 * [[http://jblevins.org/projects/deft/][Deft]]
