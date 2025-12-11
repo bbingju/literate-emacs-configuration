@@ -310,35 +310,44 @@ Hide =tool-bar= and =scroll-bar=.
 ** Font setting
 
 #+BEGIN_SRC emacs-lisp
+  (defun my/setup-fonts (&optional frame)
+    "Setup fonts for graphical frames. Works with both standalone and daemon mode."
+    (when (display-graphic-p frame)
+      (with-selected-frame (or frame (selected-frame))
+        ;; (require 'fontutil)
+
+        (set-face-attribute 'default nil :font "Cascadia Code PL" :width 'condensed :weight 'semi-light)
+        ;; (set-face-attribute 'default nil :font "Liberation Mono")
+        ;; (set-face-attribute 'default nil :font "D2Coding ligature" :height 120)
+        ;; (set-face-attribute 'default nil :font "Fira Code" :height 120)
+        ;; (set-face-attribute 'default nil :font "Hack" :height 120)
+        ;; (set-face-attribute 'default nil :font "Dejavu Sans Mono" :height 120)
+        (set-fontset-font t '(#X1200 . #Xa95f) '("D2Coding" . "unicode-bmp"))
+        (set-fontset-font t '(#Xac00 . #Xd7af) '("D2Coding" . "unicode-bmp"))
+
+        (set-fontset-font t '(#X1100 . #X11ff) '("함초롬돋움" . "unicode-bmp"))
+        (set-fontset-font t '(#Xa960 . #Xa97c) '("함초롬돋움" . "unicode-bmp"))
+        (set-fontset-font t '(#Xd7b0 . #Xd7fb) '("함초롬돋움" . "unicode-bmp"))
+        (set-fontset-font t '(#Xe0bc . #Xefff) '("함초롬돋움" . "unicode-bmp"))
+        (set-fontset-font t '(#Xf100 . #Xf66e) '("함초롬돋움" . "unicode-bmp"))
+
+        (set-fontset-font t 'han '("Noto Sans CJK KR" . "unicode-bmp"))
+        (setq-default line-spacing 5))))
+
+  ;; Apply fonts for standalone Emacs (when frames exist at init time)
   (when (display-graphic-p)
-    ;; (require 'fontutil)
+    (my/setup-fonts))
 
-    (set-face-attribute 'default nil :font "Cascadia Code PL" :width 'condensed :weight 'semi-light)
-    ;; (set-face-attribute 'default nil :font "Liberation Mono")
-    ;; (set-face-attribute 'default nil :font "D2Coding ligature" :height 120)
-    ;; (set-face-attribute 'default nil :font "Fira Code" :height 120)
-    ;; (set-face-attribute 'default nil :font "Hack" :height 120)
-    ;; (set-face-attribute 'default nil :font "Dejavu Sans Mono" :height 120)
-    (set-fontset-font t '(#X1200 . #Xa95f) '("D2Coding" . "unicode-bmp"))
-    (set-fontset-font t '(#Xac00 . #Xd7af) '("D2Coding" . "unicode-bmp"))
+  ;; Apply fonts for daemon mode (when new frames are created)
+  (add-hook 'server-after-make-frame-hook #'my/setup-fonts)
 
-    (set-fontset-font t '(#X1100 . #X11ff) '("함초롬돋움" . "unicode-bmp"))
-    (set-fontset-font t '(#Xa960 . #Xa97c) '("함초롬돋움" . "unicode-bmp"))
-    (set-fontset-font t '(#Xd7b0 . #Xd7fb) '("함초롬돋움" . "unicode-bmp"))
-    (set-fontset-font t '(#Xe0bc . #Xefff) '("함초롬돋움" . "unicode-bmp"))
-    (set-fontset-font t '(#Xf100 . #Xf66e) '("함초롬돋움" . "unicode-bmp"))
+  ;; (when-linux (fontutil/set-font "cascadia-14")))
 
-    (set-fontset-font t 'han '("Noto Sans CJK KR" . "unicode-bmp"))
-    (setq-default line-spacing 5)
+  ;; (when-mac (fontutil/set-font "firacode-14")
+  ;;           (setq-default line-spacing 3))
 
-    ;; (when-linux (fontutil/set-font "cascadia-14")))
-
-    ;; (when-mac (fontutil/set-font "firacode-14")
-    ;;           (setq-default line-spacing 3))
-
-    ;; (when-windows (fontutil/set-font "d2coding-14")
-    ;;       	(setq-default line-spacing 4)))
-    )
+  ;; (when-windows (fontutil/set-font "d2coding-14")
+  ;;       	(setq-default line-spacing 4)))
 #+END_SRC
 
 ** line numbers
@@ -442,14 +451,27 @@ Hide =tool-bar= and =scroll-bar=.
   (advice-add 'org-todo :after (func-ignore #'org-save-all-org-buffers))
 
   (require 'color)
-  (set-face-attribute 'org-block nil :background
-                      (color-darken-name
-                       (face-attribute 'default :background) 3))
+
+  ;; Set org-block background color only when frame exists
+  (defun my/set-org-block-background ()
+    "Set org-block background color, only when default face has a valid background."
+    (when (display-graphic-p)
+      (let ((bg (face-attribute 'default :background)))
+        (when (and bg (not (eq bg 'unspecified)))
+          (set-face-attribute 'org-block nil :background
+                              (color-darken-name bg 3))))))
+
+  ;; Apply immediately if frame exists, otherwise wait for frame creation
+  (if (daemonp)
+      (add-hook 'after-make-frame-functions
+                (lambda (frame)
+                  (with-selected-frame frame
+                    (my/set-org-block-background))))
+    (my/set-org-block-background))
 
   (use-package org-bullets
     :requires org
     :hook (org-mode . (lambda () (org-bullets-mode 1))))
-
 #+end_src
 
 
@@ -592,6 +614,8 @@ Override line-numbers-mode in org-mode.
 #+begin_src elisp
   (setq treesit-language-source-alist
      '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+       (c "http://github.com/tree-sitter/tree-sitter-c")
+       (cpp "https://github.com/tree-sitter/tree-sitter-cpp")
        (cmake "https://github.com/uyha/tree-sitter-cmake")
        (css "https://github.com/tree-sitter/tree-sitter-css")
        (elisp "https://github.com/Wilfred/tree-sitter-elisp")
@@ -770,6 +794,39 @@ Note: ~ansi-color-compilation-filter~ is built in since emacs 28.1.
 #+begin_src emacs-lisp
   (require 'ansi-color)
   (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
+#+end_src
+
+** Shell and Eshell ANSI color support
+
+Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록 설정한다.
+
+#+begin_src emacs-lisp
+  ;; shell-mode에서 ANSI 색상 및 제어 문자 처리
+  (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
+  (add-hook 'comint-output-filter-functions 'comint-strip-ctrl-m)
+
+  ;; carriage return (\r)이 제대로 작동하도록 설정
+  ;; nil로 설정하면 진행 표시줄이 같은 줄을 덮어쓸 수 있음
+  (setq comint-inhibit-carriage-motion nil)
+
+  ;; eshell에서 ANSI 색상 처리
+  (add-hook 'eshell-preoutput-filter-functions 'ansi-color-filter-apply)
+  (add-hook 'eshell-before-prompt-hook
+            (lambda ()
+              (setq xterm-color-preserve-properties t)))
+
+  ;; comint(shell) 버퍼에서 ANSI 색상 적용
+  (defun my/ansi-colorize-buffer ()
+    (let ((inhibit-read-only t))
+      (ansi-color-apply-on-region (point-min) (point-max))))
+
+  (add-hook 'shell-mode-hook
+            (lambda ()
+              ;; 출력에 ANSI 색상 적용
+              (add-hook 'comint-output-filter-functions
+                        'comint-osc-process-output nil t)
+              (add-hook 'comint-output-filter-functions
+                        'ansi-color-process-output nil t)))
 #+end_src
 
 ** Coding convention
