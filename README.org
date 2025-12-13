@@ -83,6 +83,25 @@
           (cons 'progn body)))
 #+END_SRC
 
+** Dropbox Path Configuration
+
+Dropbox 경로를 한 곳에서 관리한다. 플랫폼에 따라 기본 경로가 다를 수 있으므로 필요 시 =my/dropbox-path= 변수를 변경하면 된다.
+
+#+begin_src emacs-lisp
+  (defvar my/dropbox-path
+    (cond
+     ((eq system-type 'windows-nt)
+      (or (getenv "DROPBOX_PATH")
+          (expand-file-name "~/Dropbox")))
+     (t (expand-file-name "~/Dropbox")))
+    "Base path to Dropbox directory.
+On Windows, you can set DROPBOX_PATH environment variable to override.")
+
+  (defun my/dropbox-expand (path)
+    "Expand PATH relative to `my/dropbox-path'."
+    (expand-file-name path my/dropbox-path))
+#+end_src
+
 ** Sync a path to Environment Variable
 
 GUI 모드나 맥 환경에서 emacs를 실행하면 설정되어 있던 =PATH= 환경변수가 emacs에 적용되지 않을 수 있다. [[https://github.com/purcell/exec-path-from-shell][exec-path-from-shell]] 패키지를 이용하여 싱크를 맞춘다.
@@ -400,13 +419,13 @@ Hide =tool-bar= and =scroll-bar=.
                                                            (http . t)
                                                            (rust . t)))
 
-  (setq org-agenda-files '("~/Dropbox/org/inbox.org"
-                           "~/Dropbox/org/projects.org"
-                           "~/Dropbox/org/repeaters.org"))
+  (setq org-agenda-files (list (my/dropbox-expand "org/inbox.org")
+                               (my/dropbox-expand "org/projects.org")
+                               (my/dropbox-expand "org/repeaters.org")))
 
   (setq org-refile-targets
-        '(("~/Dropbox/org/todo.org" :maxlevel . 3)
-          ("~/Dropbox/org/projects.org" :maxlevel . 2)))
+        `((,(my/dropbox-expand "org/todo.org") :maxlevel . 3)
+          (,(my/dropbox-expand "org/projects.org") :maxlevel . 2)))
 
   (setq org-refile-use-outline-path 'file)
   (setq org-outline-path-complete-in-steps nil)
@@ -417,24 +436,24 @@ Hide =tool-bar= and =scroll-bar=.
           (sequence "WAIT(w@/!)" "HOLD(h@/!)" "|" "CANCELED(c@/!)")))
 
   (setq org-capture-templates
-        '(("t" "📥 Todo" entry (file+headline "~/Dropbox/org/inbox.org" "Todos")
+        `(("t" "📥 Todo" entry (file+headline ,(my/dropbox-expand "org/inbox.org") "Todos")
            "* TODO %?\n  %i\n  %a")
-          ("b" "📑 Bookmark" entry (file "~/Dropbox/org/bookmarks.org") 
+          ("b" "📑 Bookmark" entry (file ,(my/dropbox-expand "org/bookmarks.org"))
            "* [[%^{링크 URL}][%^{링크 이름}]] %^g\n  %i\n" :prepend t)
-          ("r" "To Read Item" entry (file+headline "~/Dropbox/org/inbox.org" "To Read Items") 
+          ("r" "To Read Item" entry (file+headline ,(my/dropbox-expand "org/inbox.org") "To Read Items")
            "* %?\n  %T" :prepend t)))
 
   (setq org-agenda-custom-commands
-        '((" " "Agenda"
+        `((" " "Agenda"
            ((agenda ""
                     ((org-agenda-span 'day)))
             (todo "TODO"
                   ((org-agenda-overriding-header "Unscheduled tasks")
-                   (org-agenda-files '("~/Dropbox/org/inbox.org"))
+                   (org-agenda-files (list ,(my/dropbox-expand "org/inbox.org")))
                    (org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))))
             (todo "TODO"
                   ((org-agenda-overriding-header "Unscheduled projects tasks")
-                   (org-agenda-files '("~/Dropbox/org/projects.org"))
+                   (org-agenda-files (list ,(my/dropbox-expand "org/projects.org")))
                    (org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))))))))
 
   (global-set-key (kbd "C-c c") #'org-capture)
@@ -1183,7 +1202,7 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
     :ensure t
     :bind ("<f9>" . deft)
     :config (setq deft-extensions '("org" "md" "txt")
-                  deft-directory "~/Dropbox/wiki"
+                  deft-directory (my/dropbox-expand "wiki")
                   deft-auto-save-interval 0
                   deft-text-mode 'org-mode))
 #+END_SRC
@@ -1236,7 +1255,7 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
 #+begin_src emacs-lisp
   (use-package rfc-mode
     :ensure t
-    :init (setq rfc-mode-directory (expand-file-name "~/Dropbox/resources/rfc/")))
+    :init (setq rfc-mode-directory (my/dropbox-expand "resources/rfc/")))
 #+end_src
 
 ** Claude CLI Integration
