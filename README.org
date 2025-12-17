@@ -1194,6 +1194,30 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
     ("README\\.md\\'" . gfm-mode)
     :init
     (setq markdown-command "cmark-gfm -e table -e autolink -e strikethrough -e tasklist"))
+    :bind (:map markdown-mode-map
+           ;; Preview
+           ("C-c p" . markdown-preview)
+           ("C-c P" . markdown-live-preview-mode)
+           ;; Insert
+           ("C-c l" . markdown-insert-link)
+           ("C-c i" . markdown-insert-image)
+           ("C-c c" . markdown-insert-gfm-code-block)
+           ("C-c t" . markdown-insert-table)
+           ("C-c -" . markdown-insert-hr)
+           ;; Formatting
+           ("C-c b" . markdown-insert-bold)
+           ("C-c e" . markdown-insert-italic)
+           ("C-c q" . markdown-insert-blockquote)
+           ;; Headers
+           ("C-c 1" . markdown-insert-header-atx-1)
+           ("C-c 2" . markdown-insert-header-atx-2)
+           ("C-c 3" . markdown-insert-header-atx-3)
+           ("C-c 4" . markdown-insert-header-atx-4)
+           ;; Navigation
+           ("M-p" . markdown-outline-previous)
+           ("M-n" . markdown-outline-next)
+           ;; TOC
+           ("C-c T" . markdown-toc-generate-toc))
     :config
     (defun my/markdown-follow-link-advice (orig-fun &rest args)
       "Open PDF files in browser instead of Emacs."
