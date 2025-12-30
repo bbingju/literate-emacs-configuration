@@ -177,8 +177,10 @@ If the file =~/.emacs.d/.custom.el= exist, load it.
 ** Default External Browser
 
 #+begin_src elisp
-  (setq browse-url-browser-function 'browse-url-generic)
-  (setq browse-url-generic-program "google-chrome")
+  (if (eq system-type 'windows-nt)
+      (setq browse-url-browser-function 'browse-url-default-windows-browser)
+    (setq browse-url-browser-function 'browse-url-generic)
+    (setq browse-url-generic-program "google-chrome"))
 #+end_src
 
 ** Search and Selection Interface
