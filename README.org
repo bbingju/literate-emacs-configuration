@@ -1394,4 +1394,26 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
   (global-set-key (kbd "C-c A p") 'claude-project)     ; C-c A p: project session
 #+end_src
 
+#+begin_src elisp
+  (use-package claude-code-ide
+    :vc (:url "https://github.com/manzaltu/claude-code-ide.el" :rev :newest)
+    :bind ("C-c C-'" . claude-code-ide-menu)
+    :config
+    (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
+#+end_src
 
+#+begin_src elisp
+  (use-package ai-code
+    :config
+    (ai-code-set-backend  'claude-code-ide) ;; use claude-code-ide as backend
+    ;; Enable global keybinding for the main menu
+    (global-set-key (kbd "C-c i") #'ai-code-menu)
+    ;; Optional: Use vterm if you prefer, by default it is eat
+    (setq claude-code-terminal-backend 'vterm) ;; for openai codex, github copilot cli, opencode; for claude-code-ide.el and gemini-cli.el, you can check their config
+    ;; Optional: Turn on auto-revert buffer, so that the AI code change automatically appears in the buffer
+    (global-auto-revert-mode 1)
+    (setq auto-revert-interval 1) ;; set to 1 second for faster update
+    ;; Optional: Set up Magit integration for AI commands in Magit popups
+    (with-eval-after-load 'magit
+      (ai-code-magit-setup-transients)))
+#+end_src
