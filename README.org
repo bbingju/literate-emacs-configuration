@@ -1380,7 +1380,12 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
         (goto-char (point-min))
         (display-buffer (current-buffer)))))
 
-  ;; 프로젝트 루트에서 Claude 세션 시작
+  (defun my/shell-quote (str)
+    "Quote STR for safe use in POSIX shell single-quoted strings.
+Handles embedded single quotes by replacing ' with '\"'\"'."
+    (concat "'" (replace-regexp-in-string "'" "'\"'\"'" str) "'"))
+
+  ;; Start Claude session in project root
   (defun claude-project ()
     "Start Claude CLI in project root"
     (interactive)
@@ -1393,7 +1398,10 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
           ;; Set HOME explicitly to Windows user profile for consistent claude config
           (let* ((bash "C:\\msys64\\usr\\bin\\bash.exe")
                  (home (getenv "USERPROFILE"))
-                 (cmd (format "HOME='%s' cd '%s' && %s" home project-dir claude-path)))
+                 (cmd (format "HOME=%s cd %s && %s"
+                              (my/shell-quote home)
+                              (my/shell-quote project-dir)
+                              claude-path)))
             (call-process "cmd" nil nil nil "/c" "start" "wt" "-w" "0" "nt"
                           bash "-l" "-c" cmd))
         ;; Linux/macOS: use vterm
