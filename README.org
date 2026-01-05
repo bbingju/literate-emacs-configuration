@@ -71,16 +71,16 @@
 
 #+BEGIN_SRC emacs-lisp
   (defmacro when-linux (&rest body)
-    (list 'if (string-match "linux" (prin1-to-string system-type))
-          (cons 'progn body)))
+    "Execute BODY only on GNU/Linux systems."
+    `(when (eq system-type 'gnu/linux) ,@body))
 
   (defmacro when-windows (&rest body)
-    (list 'if (string-match "windows" (prin1-to-string system-type))
-          (cons 'progn body)))
+    "Execute BODY only on Windows systems."
+    `(when (eq system-type 'windows-nt) ,@body))
 
   (defmacro when-mac (&rest body)
-    (list 'if (string-match "darwin" (prin1-to-string system-type))
-          (cons 'progn body)))
+    "Execute BODY only on macOS systems."
+    `(when (eq system-type 'darwin) ,@body))
 #+END_SRC
 
 ** Dropbox Path Configuration
