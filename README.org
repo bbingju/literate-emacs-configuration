@@ -1295,27 +1295,37 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
 ** Claude CLI Integration
 
 Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한다.
-우선, Cluade CLI가 우선 [[https://docs.anthropic.com/en/docs/claude-code/setup][설치]]되어 있어야 한다. 그리고 =libvterm= 이 시스템에 설치되어 있어야 한다. Ubuntu에서는 =sudo apt install libvterm-dev= 명령으로 설치할 수 있다.
+우선, Cluade CLI가 우선 [[https://docs.anthropic.com/en/docs/claude-code/setup][설치]]되어 있어야 한다. Linux/macOS에서는 =libvterm= 이 시스템에 설치되어 있어야 한다. Ubuntu에서는 =sudo apt install libvterm-dev= 명령으로 설치할 수 있다. Windows에서는 vterm이 지원되지 않으므로 shell을 사용한다.
 
 #+begin_src emacs-lisp
-  ;; vterm 패키지 설정 (Claude CLI 대화형 세션용)
-  (use-package vterm
-    :bind ("C-c t" . vterm)
-    :config
-    (setq vterm-max-scrollback 10000)
-    (setq vterm-buffer-name-string "vterm %s"))
+  ;; vterm 패키지 설정 (Claude CLI 대화형 세션용) - Windows 제외
+  (unless (eq system-type 'windows-nt)
+    (use-package vterm
+      :bind ("C-c t" . vterm)
+      :config
+      (setq vterm-max-scrollback 10000)
+      (setq vterm-buffer-name-string "vterm %s")))
 
   ;; Claude CLI 대화형 세션 시작
-  (defun claude-vterm ()
-    "Start Claude CLI in vterm"
+  (defun claude-shell ()
+    "Start Claude CLI in terminal"
     (interactive)
     (let ((claude-path (claude-executable-find)))
-      (if (fboundp 'vterm)
-          (progn
-            (vterm)
-            (vterm-send-string claude-path)
-            (vterm-send-return))
-        (user-error "vterm package not available. Install with: M-x package-install RET vterm"))))
+      (if (eq system-type 'windows-nt)
+          ;; Windows: use Windows Terminal with MSYS2 bash
+          ;; Set HOME explicitly to Windows user profile for consistent claude config
+          (let* ((bash "C:\\msys64\\usr\\bin\\bash.exe")
+                 (home (getenv "USERPROFILE"))
+                 (cmd (format "HOME='%s' %s" home claude-path)))
+            (call-process "cmd" nil nil nil "/c" "start" "wt" "-w" "0" "nt"
+                          bash "-l" "-c" cmd))
+        ;; Linux/macOS: use vterm
+        (if (fboundp 'vterm)
+            (progn
+              (vterm)
+              (vterm-send-string claude-path)
+              (vterm-send-return))
+          (user-error "vterm not available")))))
 
   ;; Claude CLI 실행 가능 여부 확인
   (defun claude-executable-find ()
@@ -1374,20 +1384,30 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
   (defun claude-project ()
     "Start Claude CLI in project root"
     (interactive)
-    (let ((claude-path (claude-executable-find))
-          (default-directory (if (fboundp 'projectile-project-root)
-                                 (projectile-project-root)
-                               default-directory)))
-      (if (fboundp 'vterm-other-window)
-          (progn
-            (vterm-other-window)
-            (vterm-send-string claude-path)
-            (vterm-send-return))
-        (user-error "vterm package not available. Install with: M-x package-install RET vterm"))))
+    (let* ((claude-path (claude-executable-find))
+           (project-dir (if (fboundp 'projectile-project-root)
+                            (projectile-project-root)
+                          default-directory)))
+      (if (eq system-type 'windows-nt)
+          ;; Windows: use Windows Terminal with project directory
+          ;; Set HOME explicitly to Windows user profile for consistent claude config
+          (let* ((bash "C:\\msys64\\usr\\bin\\bash.exe")
+                 (home (getenv "USERPROFILE"))
+                 (cmd (format "HOME='%s' cd '%s' && %s" home project-dir claude-path)))
+            (call-process "cmd" nil nil nil "/c" "start" "wt" "-w" "0" "nt"
+                          bash "-l" "-c" cmd))
+        ;; Linux/macOS: use vterm
+        (let ((default-directory project-dir))
+          (if (fboundp 'vterm-other-window)
+              (progn
+                (vterm-other-window)
+                (vterm-send-string claude-path)
+                (vterm-send-return))
+            (user-error "vterm not available"))))))
 
   ;; 키바인딩 설정
   ;; C-c A prefix for Claude/AI commands (A = AI/Assistant)
-  (global-set-key (kbd "C-c A c") 'claude-vterm)      ; C-c A c: start Claude vterm
+  (global-set-key (kbd "C-c A c") 'claude-shell)      ; C-c A c: start Claude shell
   (global-set-key (kbd "C-c A r") 'claude-send-region) ; C-c A r: send region
   (global-set-key (kbd "C-c A b") 'claude-send-buffer) ; C-c A b: send buffer
   (global-set-key (kbd "C-c A a") 'claude-ask)         ; C-c A a: ask question
@@ -1395,25 +1415,29 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
 #+end_src
 
 #+begin_src elisp
-  (use-package claude-code-ide
-    :vc (:url "https://github.com/manzaltu/claude-code-ide.el" :rev :newest)
-    :bind ("C-c C-'" . claude-code-ide-menu)
-    :config
-    (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
+  ;; claude-code-ide requires vterm which is not supported on Windows
+  (unless (eq system-type 'windows-nt)
+    (use-package claude-code-ide
+      :vc (:url "https://github.com/manzaltu/claude-code-ide.el" :rev :newest)
+      :bind ("C-c C-'" . claude-code-ide-menu)
+      :config
+      (claude-code-ide-emacs-tools-setup))) ; Optionally enable Emacs MCP tools
 #+end_src
 
 #+begin_src elisp
-  (use-package ai-code
-    :config
-    (ai-code-set-backend  'claude-code-ide) ;; use claude-code-ide as backend
-    ;; Enable global keybinding for the main menu
-    (global-set-key (kbd "C-c i") #'ai-code-menu)
-    ;; Optional: Use vterm if you prefer, by default it is eat
-    (setq claude-code-terminal-backend 'vterm) ;; for openai codex, github copilot cli, opencode; for claude-code-ide.el and gemini-cli.el, you can check their config
-    ;; Optional: Turn on auto-revert buffer, so that the AI code change automatically appears in the buffer
-    (global-auto-revert-mode 1)
-    (setq auto-revert-interval 1) ;; set to 1 second for faster update
-    ;; Optional: Set up Magit integration for AI commands in Magit popups
-    (with-eval-after-load 'magit
-      (ai-code-magit-setup-transients)))
+  ;; ai-code requires vterm which is not supported on Windows
+  (unless (eq system-type 'windows-nt)
+    (use-package ai-code
+      :config
+      (ai-code-set-backend  'claude-code-ide) ;; use claude-code-ide as backend
+      ;; Enable global keybinding for the main menu
+      (global-set-key (kbd "C-c i") #'ai-code-menu)
+      ;; Terminal backend: eat for Linux/macOS
+      (setq claude-code-terminal-backend 'eat)
+      ;; Optional: Turn on auto-revert buffer, so that the AI code change automatically appears in the buffer
+      (global-auto-revert-mode 1)
+      (setq auto-revert-interval 1) ;; set to 1 second for faster update
+      ;; Optional: Set up Magit integration for AI commands in Magit popups
+      (with-eval-after-load 'magit
+        (ai-code-magit-setup-transients))))
 #+end_src
