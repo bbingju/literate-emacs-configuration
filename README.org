@@ -963,9 +963,9 @@ eglot 기반의 Rust 개발 환경을 설정한다.
   ;; Enhanced rust-analyzer configuration with eglot
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs
-                 '((rust-ts-mode rust-mode) .
-                   ("~/.cargo/bin/rust-analyzer" 
-                    :initializationOptions 
+                 `((rust-ts-mode rust-mode) .
+                   (,(or (executable-find "rust-analyzer") "rust-analyzer")
+                    :initializationOptions
                     (:check (:command "clippy")
                             :cargo (:buildScripts (:enable t))
                             :procMacro (:enable t)
