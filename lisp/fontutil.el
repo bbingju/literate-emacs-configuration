@@ -65,8 +65,10 @@ See `fontutil/fontconfig' for the definition of SPECS."
                       (let ((fc (car (cdr elt))))
                         (unless (listp fc)
                           (setq fc (list fc)))
-                        (if (find-font (apply 'font-spec (car fc)))
-                            elt)))
+                        (condition-case nil
+                            (if (find-font (apply 'font-spec (car fc)))
+                                elt)
+                          (error nil))))
                     specs)))
 
 (defvar fontutil/fontconfig
