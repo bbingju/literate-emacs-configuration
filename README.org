@@ -1256,6 +1256,18 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
   (use-package org-mime)
 #+end_src
 
+** PDF Viewer
+
+doc-view는 기본 해상도(100) 변경이 필요함.
+
+#+begin_src elisp
+  (use-package doc-view
+    :custom
+    (doc-view-resolution 200))
+#+end_src
+
+다른 대안으로 [[https://github.com/vedang/pdf-tools][pdf-tools]]가 있다. 나중에 시도해보는 걸로.
+
 ** Google Translater
 
 #+BEGIN_SRC emacs-lisp
