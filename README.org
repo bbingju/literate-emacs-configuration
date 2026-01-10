@@ -1258,9 +1258,37 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
 
 ** PDF Viewer
 
-doc-view는 기본 해상도(100) 변경이 필요함.
+doc-view는 기본 해상도(100) 변경이 필요함. Org Agenda 등 다른 버퍼가 doc-view 창을 빼앗지 않도록 =display-buffer-alist= 로 보호한다.
 
 #+begin_src elisp
+  (defun my/buffer-has-doc-view-p (window)
+    "Return non-nil if WINDOW displays a doc-view buffer."
+    (with-current-buffer (window-buffer window)
+      (derived-mode-p 'doc-view-mode)))
+
+  (defun my/display-buffer-avoid-doc-view (buffer alist)
+    "Display BUFFER in a window, avoiding doc-view windows.
+This is a display-buffer action function."
+    (let ((start-window (selected-window))
+          (window nil))
+      ;; Try to find a non-doc-view window
+      (walk-windows
+       (lambda (w)
+         (unless (or window (my/buffer-has-doc-view-p w))
+           (setq window w)))
+       nil t)
+      ;; If all windows are doc-view, split the frame
+      (if window
+          (window--display-buffer buffer window 'reuse alist)
+        (let ((new-window (split-window-sensibly start-window)))
+          (when new-window
+            (window--display-buffer buffer new-window 'window alist))))))
+
+  ;; Org Agenda가 doc-view 창을 사용하지 않도록 설정
+  (add-to-list 'display-buffer-alist
+               '("\\*Org Agenda\\*"
+                 (my/display-buffer-avoid-doc-view)))
+
   (use-package doc-view
     :custom
     (doc-view-resolution 200))
