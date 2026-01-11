@@ -52,7 +52,7 @@ Manual Claude functions: `claude-vterm`, `claude-send-region`, `claude-ask`, `cl
 - Comments in English (per user preference)
 - Korean language support is important (input methods, fonts, encoding)
 - Configuration uses org-mode code blocks with `:tangle` directives where applicable
-- Dropbox integration for org-agenda files
+- Org files stored in `~/org` directory (agenda, capture, refile targets)
 
 ## Testing Changes
 
