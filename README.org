@@ -95,6 +95,12 @@ On Windows, you can set DROPBOX_PATH environment variable to override.")
   (defun my/dropbox-expand (path)
     "Expand PATH relative to `my/dropbox-path'."
     (expand-file-name path my/dropbox-path))
+
+  (setq org-directory (expand-file-name "~/org"))
+
+  (defun my/org-expand (path)
+    "Expand PATH relative to `org-directory'."
+    (expand-file-name path org-directory))
 #+end_src
 
 ** Sync a path to Environment Variable
@@ -405,13 +411,13 @@ Hide =tool-bar= and =scroll-bar=.
                                                            (http . t)
                                                            (rust . t)))
 
-  (setq org-agenda-files (list (my/dropbox-expand "org/inbox.org")
-                               (my/dropbox-expand "org/projects.org")
-                               (my/dropbox-expand "org/repeaters.org")))
+  (setq org-agenda-files (list (my/org-expand "inbox.org")
+                               (my/org-expand "projects.org")
+                               (my/org-expand "repeaters.org")))
 
   (setq org-refile-targets
-        `((,(my/dropbox-expand "org/todo.org") :maxlevel . 3)
-          (,(my/dropbox-expand "org/projects.org") :maxlevel . 2)))
+        `((,(my/org-expand "todo.org") :maxlevel . 3)
+          (,(my/org-expand "projects.org") :maxlevel . 2)))
 
   (setq org-refile-use-outline-path 'file)
   (setq org-outline-path-complete-in-steps nil)
@@ -422,11 +428,11 @@ Hide =tool-bar= and =scroll-bar=.
           (sequence "WAIT(w@/!)" "HOLD(h@/!)" "|" "CANCELED(c@/!)")))
 
   (setq org-capture-templates
-        `(("t" "📥 Todo" entry (file+headline ,(my/dropbox-expand "org/inbox.org") "Todos")
+        `(("t" "📥 Todo" entry (file+headline ,(my/org-expand "inbox.org") "Todos")
            "* TODO %?\n  %i\n  %a")
-          ("b" "📑 Bookmark" entry (file ,(my/dropbox-expand "org/bookmarks.org"))
+          ("b" "📑 Bookmark" entry (file ,(my/org-expand "bookmarks.org"))
            "* [[%^{링크 URL}][%^{링크 이름}]] %^g\n  %i\n" :prepend t)
-          ("r" "To Read Item" entry (file+headline ,(my/dropbox-expand "org/inbox.org") "To Read Items")
+          ("r" "To Read Item" entry (file+headline ,(my/org-expand "inbox.org") "To Read Items")
            "* %?\n  %T" :prepend t)))
 
   (setq org-agenda-custom-commands
@@ -435,11 +441,11 @@ Hide =tool-bar= and =scroll-bar=.
                     ((org-agenda-span 'day)))
             (todo "TODO"
                   ((org-agenda-overriding-header "Unscheduled tasks")
-                   (org-agenda-files (list ,(my/dropbox-expand "org/inbox.org")))
+                   (org-agenda-files (list ,(my/org-expand "inbox.org")))
                    (org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))))
             (todo "TODO"
                   ((org-agenda-overriding-header "Unscheduled projects tasks")
-                   (org-agenda-files (list ,(my/dropbox-expand "org/projects.org")))
+                   (org-agenda-files (list ,(my/org-expand "projects.org")))
                    (org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))))))))
 
   (global-set-key (kbd "C-c c") #'org-capture)
@@ -1220,7 +1226,7 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
     :ensure t
     :bind ("<f9>" . deft)
     :config (setq deft-extensions '("org" "md" "txt")
-                  deft-directory (my/dropbox-expand "wiki")
+                  deft-directory "~/deft"
                   deft-auto-save-interval 0
                   deft-text-mode 'org-mode))
 #+END_SRC
