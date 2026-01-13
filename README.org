@@ -1226,7 +1226,7 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
     :ensure t
     :bind ("<f9>" . deft)
     :config (setq deft-extensions '("org" "md" "txt")
-                  deft-directory (my/dropbox-expand "wiki")
+                  deft-directory "~/deft"
                   deft-auto-save-interval 0
                   deft-text-mode 'org-mode))
 #+END_SRC
