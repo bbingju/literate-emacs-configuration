@@ -840,6 +840,17 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
                         'ansi-color-process-output nil t)))
 #+end_src
 
+** Shell completion
+
+=M-x shell= 은 =TERM=dumb= 환경에서 실행되므로 bash의 readline 탭 완성이 비활성화된다. [[https://github.com/szermatt/emacs-bash-completion][bash-completion]] 패키지를 사용하여 bash의 프로그래머블 완성을 shell-mode에서 사용할 수 있게 한다.
+
+#+begin_src emacs-lisp
+  (use-package bash-completion
+    :ensure t
+    :config
+    (bash-completion-setup))
+#+end_src
+
 ** Coding convention
 
 #+begin_src emacs-lisp
