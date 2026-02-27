@@ -62,3 +62,6 @@ flycheck_*.el
 /elpy/
 /bookmarks
 /tree-sitter/*
+
+# Private mail account settings
+mu4e-accounts.el
