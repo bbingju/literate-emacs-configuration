@@ -65,6 +65,15 @@ For elisp modules in `lisp/`:
 M-x load-file RET lisp/<module>.el
 ```
 
+### Automated Tests
+
+Run `test-readme.el` to validate README.org structure and syntax:
+```sh
+emacs --batch -l test-readme.el
+```
+
+This checks: org parsing, expected headings, elisp block syntax, use-package structure, init.el integration, platform macro definitions, custom module existence, and balanced begin/end_src pairs.
+
 ## Key Bindings Reference
 
 | Binding | Function |
