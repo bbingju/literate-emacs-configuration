@@ -13,4 +13,5 @@ emacs --batch -L . -L test \
   -l test/test-custom-functions.el \
   -l test/test-fontutil.el \
   -l test/test-c-ts-mode.el \
+  -l test/test-mu4e-load-path.el \
   -f ert-run-tests-batch-and-exit

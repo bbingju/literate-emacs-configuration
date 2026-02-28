@@ -1266,48 +1266,59 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
 계정 정보(이메일 주소, 이름, maildir 경로 등)는 =mu4e-accounts.el= 에 별도 관리한다. 이 파일은 git에서 제외된다.
 
 #+begin_src elisp
-  (use-package mu4e
-    :ensure nil
-    :load-path "/usr/share/emacs/site-lisp/elpa-src/mu4e-1.10.8"
-    :config
-    (setq mu4e-maildir "~/Mail")
-    (setq mu4e-update-interval 300)
+  (defun my/find-mu4e-load-path ()
+    "Find mu4e elisp directory based on mu binary location."
+    (when-let* ((mu-bin (executable-find "mu"))
+                (mu-prefix (file-name-directory
+                            (directory-file-name
+                             (file-name-directory mu-bin)))))
+      (car (file-expand-wildcards
+            (expand-file-name "share/emacs/site-lisp/*/mu4e*" mu-prefix)))))
 
-    ;; Load private account settings (email, contexts, maildir-shortcuts)
-    (load (expand-file-name "mu4e-accounts" user-emacs-directory) t)
+  (when-let* ((mu4e-path (my/find-mu4e-load-path)))
+    (use-package mu4e
+      :ensure nil
+      :load-path mu4e-path
+      :config
+      (setq mu4e-maildir "~/Mail")
+      (setq mu4e-update-interval 300)
 
-    ;; display settings
-    (setq mu4e-view-show-addresses t)
-    (setq mu4e-headers-date-format "%Y-%m-%d")
-    ;; font face settings
-    (with-eval-after-load 'gnus-art
-      (dolist (face '(gnus-header-subject
-                      gnus-header-from
-                      gnus-header-name
-                      gnus-header-content))
-      (set-face-attribute face nil :family "Noto Sans CJK KR"))))
+      ;; Load private account settings (email, contexts, maildir-shortcuts)
+      (load (expand-file-name "mu4e-accounts" user-emacs-directory) t)
 
-  (setq shr-use-fonts nil)
+      ;; display settings
+      (setq mu4e-view-show-addresses t)
+      (setq mu4e-headers-date-format "%Y-%m-%d")
+      ;; font face settings
+      (with-eval-after-load 'gnus-art
+        (dolist (face '(gnus-header-subject
+                        gnus-header-from
+                        gnus-header-name
+                        gnus-header-content))
+        (set-face-attribute face nil :family "Noto Sans CJK KR"))))
 
-  ;; Auto BCC to self so sent mail appears via POP3 sync
-  ;; (Hiworks only supports POP3, no IMAP push available)
-  (defun my/add-bcc-to-self ()
-    "Automatically add BCC to self for Hiworks context only."
-    (when-let* ((ctx (mu4e-context-current))
-                ((string= (mu4e-context-name ctx) "Hiworks")))
-      (save-excursion
-        (message-add-header
-         (format "Bcc: %s" user-mail-address)))))
+    (setq shr-use-fonts nil)
 
-  (add-hook 'mu4e-compose-mode-hook #'my/add-bcc-to-self)
+    ;; Auto BCC to self so sent mail appears via POP3 sync
+    ;; (Hiworks only supports POP3, no IMAP push available)
+    (defun my/add-bcc-to-self ()
+      "Automatically add BCC to self for Hiworks context only."
+      (when-let* ((ctx (mu4e-context-current))
+                  ((string= (mu4e-context-name ctx) "Hiworks")))
+        (save-excursion
+          (message-add-header
+           (format "Bcc: %s" user-mail-address)))))
 
-  (use-package message
-    :ensure nil
-    :config
-    (setq message-send-mail-function 'message-send-mail-with-sendmail)
-    (setq sendmail-program "msmtp")
-    (setq message-sendmail-extra-arguments '("--read-envelope-from"))
-    (setq message-sendmail-f-is-evil t))
+    (add-hook 'mu4e-compose-mode-hook #'my/add-bcc-to-self)
+
+    (when (executable-find "msmtp")
+      (use-package message
+        :ensure nil
+        :config
+        (setq message-send-mail-function 'message-send-mail-with-sendmail)
+        (setq sendmail-program "msmtp")
+        (setq message-sendmail-extra-arguments '("--read-envelope-from"))
+        (setq message-sendmail-f-is-evil t))))
 #+end_src
 
 #+begin_src elisp
@@ -1318,6 +1329,7 @@ Compose 시 org 문법으로 작성한 뒤 =C-c M-o= 를 누르면 text + HTML m
 
 #+begin_src elisp
   (use-package org-mime
+    :after mu4e
     :config
     (setq org-mime-export-options '(:section-numbers nil
                                     :with-author nil

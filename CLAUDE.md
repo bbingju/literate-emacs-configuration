@@ -84,6 +84,7 @@ Test files:
 - **test/test-custom-functions.el** - Custom utility functions and macros
 - **test/test-fontutil.el** - Font utility functions (lisp/fontutil.el)
 - **test/test-c-ts-mode.el** - C/C++ tree-sitter mode (lisp/my-c-ts-mode.el)
+- **test/test-mu4e-load-path.el** - mu4e load-path auto-detection
 
 ## Key Bindings Reference
 
