@@ -7,21 +7,22 @@
 [[https://stable.melpa.org/#/literate-elisp][file:https://stable.melpa.org/packages/literate-elisp-badge.svg]]
 
 * COMMENT How to use it
-#+BEGIN_SRC sh
+
+#+begin_src sh
   cd
   git clone https://github.com/bbingju/literate-emacs-configuration.git .emacs.d
-#+END_SRC
+#+end_src
 
 * First of All
 
 ** Speed-up at startup
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (let* ((normal-gc-cons-threshold (* 20 1024 1024))
          (init-gc-cons-threshold (* 128 1024 1024)))
     (setq gc-cons-threshold init-gc-cons-threshold)
     (add-hook 'emacs-startup-hook
               (lambda () (setq gc-cons-threshold normal-gc-cons-threshold))))
-#+END_SRC
+#+end_src
 
 ** Increase the amount of data which emacs reads from the process
 
@@ -31,30 +32,30 @@
 
 ** Add load-path
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
-#+END_SRC
+#+end_src
 
 ** ELPA configuration
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (require 'package)
   (let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
                       (not (gnutls-available-p))))
          (proto (if no-ssl "http" "https")))
     (add-to-list 'package-archives (cons "melpa" (concat proto "://melpa.org/packages/")) t))
   (unless package--initialized (package-initialize t))
-#+END_SRC
+#+end_src
 
 ** use-package
 
 패키지 관리에 [[https://github.com/jwiegley/use-package][use-package]]를 적극 이용한다. 하지만 아직도 개별 설정에 의문스러운 점이 많다.
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (unless (package-installed-p 'use-package)
     (package-refresh-contents)
     (package-install 'use-package))
-#+END_SRC
+#+end_src
 
 =use-package= 가 편한 이유 중 하나는 필요한 패키지를 elpa에서 직접 가져오기 때문이다. 그런데 설정마다 ~:ensure t~ 를 설정해줘야 자동으로 진행하는데 번거로우므로 전역변수로 설정해둔다.
 
@@ -64,7 +65,7 @@
 
 ** My own fuctions & macros
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (defmacro when-linux (&rest body)
     "Execute BODY only on GNU/Linux systems."
     `(when (eq system-type 'gnu/linux) ,@body))
@@ -76,7 +77,7 @@
   (defmacro when-mac (&rest body)
     "Execute BODY only on macOS systems."
     `(when (eq system-type 'darwin) ,@body))
-#+END_SRC
+#+end_src
 
 ** Dropbox Path Configuration
 
@@ -120,7 +121,7 @@ GUI 모드나 맥 환경에서 emacs를 실행하면 설정되어 있던 =PATH= 
 
 I need this configuration.
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (when enable-multibyte-characters
     (set-language-environment "Korean")
     (setq-default file-name-coding-system 'utf-8)
@@ -133,15 +134,15 @@ I need this configuration.
                 (global-set-key (kbd "S-SPC") 'toggle-input-method)
                 (global-set-key (kbd "<Hangul>") 'toggle-input-method)
                 (global-set-key (kbd "<Hangul_Hanja>") 'hangul-to-hanja-conversion))
-#+END_SRC
+#+end_src
 
 MacOS 일 경우, 파일시스템에서 한글이 제대로 나오게 하기 위해서 아래와 같이 설정한다.
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (when-mac (require 'ucs-normalize)
             (set-file-name-coding-system 'utf-8-hfs)
             (setq default-process-coding-system '(utf-8-hfs . utf-8-hfs)))
-#+END_SRC
+#+end_src
 
 ** File-related tweaks
 #+begin_src emacs-lisp
@@ -169,11 +170,11 @@ Auto refreshes every 3 seconds.
 ** Load a custom file
 If the file =~/.emacs.d/.custom.el= exist, load it.
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (setq custom-file (expand-file-name ".custom.el" user-emacs-directory))
   (when (file-exists-p custom-file)
     (load custom-file))
-#+END_SRC
+#+end_src
 
 ** Default External Browser
 
@@ -289,17 +290,17 @@ text-mode를 사용할 경우 visual-line-mode를 활성화 한다.
 ** Basic appearance
 Hide =tool-bar= and =scroll-bar=.
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (mapc
    (lambda (mode)
      (if (fboundp mode)
          (funcall mode -1)))
    '(tool-bar-mode scroll-bar-mode))
-#+END_SRC
+#+end_src
 
 ** doom-themes
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package doom-themes
     :init (load-theme 'doom-city-lights t)
     :config
@@ -308,7 +309,7 @@ Hide =tool-bar= and =scroll-bar=.
     (doom-themes-visual-bell-config)
     (doom-themes-neotree-config)
     (doom-themes-org-config))
-#+END_SRC
+#+end_src
 
 ** doom-modeline
 
@@ -331,7 +332,7 @@ Hide =tool-bar= and =scroll-bar=.
 
 ** Font setting
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (defun my/setup-fonts (&optional frame)
     "Setup fonts for graphical frames. Works with both standalone and daemon mode."
     (when (display-graphic-p frame)
@@ -360,7 +361,7 @@ Hide =tool-bar= and =scroll-bar=.
 
   ;; Apply fonts for daemon mode (when new frames are created)
   (add-hook 'server-after-make-frame-hook #'my/setup-fonts)
-#+END_SRC
+#+end_src
 
 ** line numbers
 
@@ -387,7 +388,7 @@ Hide =tool-bar= and =scroll-bar=.
       (setenv "PUPPETEER_ARGS" "--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage")))
 #+end_src
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (defface org-block-begin-line
     '((t (:underline "#A7A6AA" :foreground "#008ED1" :background "#EAEAFF")))
     "Face used for the line delimiting the begin of source blocks.")
@@ -666,7 +667,7 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
 
 ~projectile-indexing-method~ 를 =alien= 으로 지정하여 Windows에서도 이 방법을 쓰도록 강제한다. 자세한 내용은 [[https://github.com/bbatsov/projectile/issues/1183][이슈]]에서 확인할 수 있다. 메뉴얼은 [[https://docs.projectile.mx/projectile/index.html][여기]]에서 볼 수 있다.
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package projectile
     :bind-keymap
     ("C-c p" . projectile-command-map)
@@ -676,7 +677,7 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
     (projectile-enable-caching t)
     (projectile-indexing-method 'alien)
     (projectile-completion-system 'default))
-#+END_SRC
+#+end_src
 
 ** Eglot
 
@@ -741,12 +742,12 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
 
 This is an awesome plugin as git client.
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package magit
     :commands (magit-init
                magit-status)
     :bind ("C-x g" . magit-status))
-#+END_SRC
+#+end_src
 
 ** CMake
 #+begin_src elisp
@@ -877,24 +878,24 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
 #+end_src
 
 ** diff-hl
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package diff-hl
     :ensure t
     :init (global-diff-hl-mode)
     :config
     (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh))
-#+END_SRC
+#+end_src
 
 ** flycheck
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package flycheck
     :hook (after-init . global-flycheck-mode)
     :config
     (setq flycheck-check-syntax-automatically '(save idle-change mode-enabled)))
-#+END_SRC
+#+end_src
 
 ** Yasnippet
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package yasnippet
     :defer 5
     :diminish yas-minor-mode
@@ -903,7 +904,7 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
   (use-package yasnippet-snippets
     :ensure t
     :after yasnippet)
-#+END_SRC
+#+end_src
 
 
 ** Eldoc
@@ -947,7 +948,7 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
 
 ** Python
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package python
     :mode ("\\.py\\'" . python-mode)
     :interpreter ("python3" . python-mode)
@@ -975,7 +976,7 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
     (add-hook 'pip-requirements-mode-hook #'pip-requirements-auto-complete-setup))
 
   (use-package py-autopep8)
-#+END_SRC
+#+end_src
 
 ** Rust
 
@@ -1119,16 +1120,16 @@ eglot 기반의 Rust 개발 환경을 설정한다.
 
 ** Arduino
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package arduino-mode)
-#+END_SRC
+#+end_src
 
 org-mode structure template에 python을 추가한다.
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (if (boundp 'org-structure-template-alist)
       (add-to-list 'org-structure-template-alist '("p" . "src python")))
-#+END_SRC
+#+end_src
 
 
 ** Emacs Lisp
@@ -1153,14 +1154,14 @@ org-mode structure template에 python을 추가한다.
 
 ** Configurations for Qt5
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package qml-mode)
-#+END_SRC
+#+end_src
 
 ** YAML
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package yaml-mode)
-#+END_SRC
+#+end_src
 
 ** Conf
 
@@ -1175,40 +1176,40 @@ org-mode structure template에 python을 추가한다.
 
 * Docker
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package dockerfile-mode
     :mode ("Dockerfile\\'" . dockerfile-mode))
-#+END_SRC
+#+end_src
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package docker-compose-mode)
-#+END_SRC
+#+end_src
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package docker
     :bind ("C-c d" . docker))
-#+END_SRC
+#+end_src
 
 * graphviz-dot-mode
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package graphviz-dot-mode
     :mode ("\\.dot\\'" . graphviz-dot-mode)
     :init
     (autoload 'graphviz-dot-mode "graphviz-dot-mode" "graphviz-dot Editing Mode" t))
-#+END_SRC
+#+end_src
 
 * gnuplot-mode
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package gnuplot-mode
     :mode ("\\.plt\\'" . gnuplot-mode)
     :config (when-windows (setq gnuplot-program "c:/pkg/gnuplot/bin/gnuplot.exe")))
-#+END_SRC
+#+end_src
 
 * markdown-mode
 
 Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markdown-mode]]를 사용한다. =gfm-mode= 는 같이 포함된 모드로 github flaved markdown을 의미한다.
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package markdown-mode
     :mode
     ("README\\.md\\'" . gfm-mode)
@@ -1247,10 +1248,10 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
             (browse-url (expand-file-name url))
           (apply orig-fun args))))
     (advice-add 'markdown-follow-link-at-point :around #'my/markdown-follow-link-advice))
-#+END_SRC
+#+end_src
 
 * [[http://jblevins.org/projects/deft/][Deft]]
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package deft
     :ensure t
     :bind ("<f9>" . deft)
@@ -1258,7 +1259,7 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
                   deft-directory "~/deft"
                   deft-auto-save-interval 0
                   deft-text-mode 'org-mode))
-#+END_SRC
+#+end_src
 * Tools
 
 ** Mail
@@ -1381,7 +1382,7 @@ This is a display-buffer action function."
 
 ** Google Translater
 
-#+BEGIN_SRC emacs-lisp
+#+begin_src emacs-lisp
   (use-package google-translate
     :ensure t
     :bind ("M-o t" . google-translate-at-point)
@@ -1389,7 +1390,7 @@ This is a display-buffer action function."
     :custom
     (google-translate-default-source-language "en")
     (google-translate-default-target-language "ko"))
-#+END_SRC
+#+end_src
 
 ** rfc-mode
 

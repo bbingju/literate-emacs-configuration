@@ -141,5 +141,29 @@
         (setq closes (1+ closes)))
       (should (= opens closes)))))
 
+(ert-deftest test-readme/lowercase-block-markers ()
+  "All source block markers use lowercase (no #+BEGIN_SRC or #+END_SRC).
+Blocks under COMMENT headings are excluded."
+  (with-temp-buffer
+    (insert-file-contents test-readme-file)
+    (org-mode)
+    (org-element-map (org-element-parse-buffer) 'src-block
+      (lambda (blk)
+        (let ((parent (org-element-property :parent blk))
+              (in-comment nil))
+          (while parent
+            (when (and (eq (org-element-type parent) 'headline)
+                       (org-element-property :commentedp parent))
+              (setq in-comment t))
+            (setq parent (org-element-property :parent parent)))
+          (unless in-comment
+            (save-excursion
+              (goto-char (org-element-property :begin blk))
+              (let ((case-fold-search nil))
+                (when (looking-at "^[ \t]*#\\+\\(BEGIN_SRC\\|END_SRC\\)")
+                  (ert-fail
+                   (format "Uppercase block marker at line %d: %s"
+                           (line-number-at-pos) (match-string 0))))))))))))
+
 (provide 'test-readme-structure)
 ;;; test-readme-structure.el ends here
