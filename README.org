@@ -381,7 +381,7 @@ Hide =tool-bar= and =scroll-bar=.
   (use-package ob-rust)
   (use-package ob-mermaid
     :config
-    (setq ob-mermaid-cli-path "mmdc")
+    (setq ob-mermaid-cli-path (or (executable-find "mmdc") "mmdc"))
     ;; Only set Chrome path if it exists
     (when (file-executable-p "/opt/google/chrome/chrome")
       (setenv "PUPPETEER_EXECUTABLE_PATH" "/opt/google/chrome/chrome")
@@ -403,7 +403,7 @@ Hide =tool-bar= and =scroll-bar=.
 
   (setq org-return-follow-link t
         org-startup-indented 't
-        org-ditaa-jar-path "~/.emacs.d/ditaa.jar")
+        org-ditaa-jar-path (expand-file-name "ditaa.jar" user-emacs-directory))
 
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
                                                            (python . t)
@@ -1094,7 +1094,7 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
     ("README\\.md\\'" . gfm-mode)
     :init
     (setq markdown-command "cmark-gfm -e table -e autolink -e strikethrough -e tasklist")
-    (setq markdown-css-paths '("~/.config/markdown/github.css"))
+    (setq markdown-css-paths (list (expand-file-name "~/.config/markdown/github.css")))
     :bind (:map markdown-mode-map
            ;; Preview
            ("C-c p" . markdown-preview)
@@ -1293,6 +1293,9 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
       (setq vterm-max-scrollback 10000)
       (setq vterm-buffer-name-string "vterm %s")))
 
+  (defconst my/msys2-bash "C:\\msys64\\usr\\bin\\bash.exe"
+    "MSYS2 bash executable path for Windows.")
+
   ;; Claude CLI 대화형 세션 시작
   (defun claude-shell ()
     "Start Claude CLI in terminal"
@@ -1301,11 +1304,10 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
       (if (eq system-type 'windows-nt)
           ;; Windows: use Windows Terminal with MSYS2 bash
           ;; Set HOME explicitly to Windows user profile for consistent claude config
-          (let* ((bash "C:\\msys64\\usr\\bin\\bash.exe")
-                 (home (getenv "USERPROFILE"))
+          (let* ((home (getenv "USERPROFILE"))
                  (cmd (format "HOME='%s' %s" home claude-path)))
             (call-process "cmd" nil nil nil "/c" "start" "wt" "-w" "0" "nt"
-                          bash "-l" "-c" cmd))
+                          my/msys2-bash "-l" "-c" cmd))
         ;; Linux/macOS: use vterm
         (if (fboundp 'vterm)
             (progn
@@ -1383,14 +1385,13 @@ Handles embedded single quotes by replacing ' with '\"'\"'."
       (if (eq system-type 'windows-nt)
           ;; Windows: use Windows Terminal with project directory
           ;; Set HOME explicitly to Windows user profile for consistent claude config
-          (let* ((bash "C:\\msys64\\usr\\bin\\bash.exe")
-                 (home (getenv "USERPROFILE"))
+          (let* ((home (getenv "USERPROFILE"))
                  (cmd (format "HOME=%s cd %s && %s"
                               (my/shell-quote home)
                               (my/shell-quote project-dir)
                               claude-path)))
             (call-process "cmd" nil nil nil "/c" "start" "wt" "-w" "0" "nt"
-                          bash "-l" "-c" cmd))
+                          my/msys2-bash "-l" "-c" cmd))
         ;; Linux/macOS: use vterm
         (let ((default-directory project-dir))
           (if (fboundp 'vterm-other-window)
