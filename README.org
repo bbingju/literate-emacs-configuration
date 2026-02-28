@@ -489,71 +489,6 @@ Hide =tool-bar= and =scroll-bar=.
 #+end_src
 
 
-* COMMENT Old Configuration for Org
-
-#+BEGIN_SRC emacs-lisp
-  (use-package org
-    :init (setq org-directory my-org-directory
-                org-agenda-files my-org-agenda-files
-                org-default-notes-file (concat org-directory "/notes.org")
-                org-export-coding-system 'utf-8
-                org-confirm-babel-evaluate nil)
-
-    :mode (("\\.org\\'" . org-mode))
-
-    :bind (("C-c l" . org-store-link)
-           ("C-c c" . org-capture)
-           ("C-c a" . org-agenda))
-
-    :config
-    (setq org-startup-indented 't
-          org-ditaa-jar-path "~/.emacs.d/ditaa.jar")
-    (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)
-                                                             (python . t)
-                                                             (ditaa . t)
-                                                             (mermaid . t)
-                                                             (emacs-lisp . t)
-                                                             (http . t)
-                                                             (rust . t)))
-    (set-register ?l `(cons 'file ,(concat org-directory "/links.org")))
-    ;; refer to http://orgmode.org/manual/Template-elements.html#Template-elements
-    (setq org-capture-templates
-          '(("l" "Link" entry (file+headline org-default-notes-file "Links") 
-             "* %^L%? %^g" :prepend t)
-            ("t" "To Do Item" entry (file+headline org-default-notes-file "To Do Items") 
-             "* TODO %?\n  %T" :prepend t)
-            ("r" "To Read Item" entry (file+headline org-default-notes-file "To Read Items") 
-             "* %?\n  %T" :prepend t)))
-
-    (setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
-
-    (setq org-feed-alist
-          '(("Slashdot"
-             "http://rss.slashdot.org/Slashdot/slashdot"
-             (concat org-directory "/feeds.org")
-             "Slashdot Entries")))
-
-    (add-to-list 'org-latex-packages-alist '("" "listings" nil))
-    (setq org-latex-listings t)
-    (setq org-latex-listings-options '(("breaklines" "true")))
-    (setq org-latex-minted-options '(("breaklines" "true")
-                                   ("breakanywhere" "true")))
-
-    (with-eval-after-load 'ox-latex
-      (add-to-list 'org-latex-classes
-                   '("xoblivoir"
-                     "\\documentclass{xoblivoir}"))))
-
-  (require 'color)
-  (set-face-attribute 'org-block nil :background
-                      (color-darken-name
-                       (face-attribute 'default :background) 3))
-
-  (use-package org-bullets
-    :requires org
-    :hook (org-mode . (lambda () (org-bullets-mode 1))))
-#+END_SRC
-
 한글이 섞인 테이블이 삐뚤빼뚤 해지는 것을 바로잡기 위해 [[https://github.com/casouri/valign][이 패키지]]를 사용한다.
 
 #+begin_src emacs-lisp
@@ -1061,62 +996,6 @@ eglot 기반의 Rust 개발 환경을 설정한다.
   (use-package toml-mode
     :mode "\\.toml\\'")
 #+end_src
-
-** COMMENT Rust
-
-#+begin_src emacs-lisp
-  ;; (setq exec-path (append exec-path '("~/.cargo/bin")))
-
-  ;; (use-package rust-mode
-  ;;   :init (add-hook 'rust-mode-hook (lambda () (setq indent-tabs-mode nil)))
-
-  ;;   :bind (:map rust-mode-map
-  ;; 	      ("C-c r" . rust-run)
-  ;; 	      ("C-c t" . rust-test)
-  ;; 	      ("C-c b" . cargo-process-build))
-  ;;   :config (setq rust-format-on-save t))
-
-  ;; (use-package cargo
-  ;;   :hook (rust-mode . cargo-minor-mode))
-
-  (use-package rustic
-    :ensure
-    :bind (:map rustic-mode-map
-                ("M-j" . lsp-ui-imenu)
-                ("M-?" . lsp-find-references)
-                ("C-c C-c l" . flycheck-list-errors)
-                ("C-c C-c a" . lsp-execute-code-action)
-                ("C-c C-c r" . lsp-rename)
-                ("C-c C-c q" . lsp-workspace-restart)
-                ("C-c C-c Q" . lsp-workspace-shutdown)
-                ("C-c C-c s" . lsp-rust-analyzer-status)
-                ("C-c C-c e" . lsp-rust-analyzer-expand-macro)
-                ("C-c C-c d" . dap-hydra)
-                ("C-c C-c h" . lsp-ui-doc-glance))
-    :config
-    ;; uncomment for less flashiness
-    ;; (setq lsp-eldoc-hook nil)
-    ;; (setq lsp-enable-symbol-highlighting nil)
-    ;; (setq lsp-signature-auto-activate nil)
-
-    ;; comment to disable rustfmt on save
-    (setq rustic-format-on-save t)
-    (add-hook 'rustic-mode-hook 'rk/rustic-mode-hook))
-
-  (defun rk/rustic-mode-hook ()
-    ;; so that run C-c C-c C-r works without having to confirm, but don't try to
-    ;; save rust buffers that are not file visiting. Once
-    ;; https://github.com/brotzeit/rustic/issues/253 has been resolved this should
-    ;; no longer be necessary.
-    (when buffer-file-name
-      (setq-local buffer-save-without-query t)))
-#+end_src
-
-#+begin_src elisp
-  (use-package rust-playground)
-  (use-package toml-mode)
-#+end_src
-
 
 ** Arduino
 
