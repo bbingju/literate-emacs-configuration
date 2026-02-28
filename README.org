@@ -1139,6 +1139,154 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
                   deft-auto-save-interval 0
                   deft-text-mode 'org-mode))
 #+end_src
+
+* Gnus
+
+#+begin_src elisp
+  ;;; Gnus configuration for Linux Kernel Mailing List
+
+  (use-package gnus
+    :ensure nil
+    :config
+    ;; Basic Gnus configuration
+    (setq gnus-select-method '(nntp "news.gmane.io"
+                                     (nntp-connection-type plain)))
+    ;; Additional news servers for LKML
+    (setq gnus-secondary-select-methods
+          '(;; Alternative: use nnml for local mail storage
+            (nnml "")
+            ;; Add more reliable NNTP servers if needed
+            ;; (nntp "news.eternal-september.org")
+            ))
+
+    ;; Set up directories for Gnus
+    (let ((gnus-base (expand-file-name ".gnus.d/" "~/")))
+      (setq gnus-directory gnus-base
+            gnus-article-save-directory (expand-file-name "saved/" gnus-base)
+            gnus-cache-directory (expand-file-name "cache/" gnus-base)
+            gnus-kill-files-directory (expand-file-name "kill/" gnus-base)))
+
+    ;; Performance and display settings
+    (setq gnus-use-cache t)
+    (setq gnus-cache-enter-articles '(ticked dormant))
+    (setq gnus-cache-remove-articles '(read))
+
+    ;; Threading and sorting
+    (setq gnus-thread-sort-functions
+          '(gnus-thread-sort-by-most-recent-date
+            gnus-thread-sort-by-subject))
+    (setq gnus-article-sort-functions
+          '(gnus-article-sort-by-date))
+
+    ;; Display settings
+    (setq gnus-summary-line-format "%U%R%z %(%&user-date;  %-15,15f  %B%s%)\n")
+    (setq gnus-user-date-format-alist
+          '((t . "%Y-%m-%d %H:%M")))
+
+    ;; Window configuration
+    (setq gnus-use-full-window nil)
+
+    ;; Scoring for LKML (to prioritize important messages)
+    (setq gnus-use-scoring t)
+    (setq gnus-score-expiry-days 30)
+
+    ;; Article display
+    (setq gnus-article-browse-delete-temp t)
+    (setq gnus-treat-display-smileys nil)
+    (setq gnus-treat-display-x-face nil)
+
+    ;; Subscription list for LKML groups
+    (setq gnus-subscribe-newsgroup-method 'gnus-subscribe-alphabetically))
+
+  ;; Custom function to subscribe to LKML groups
+  (defun my/subscribe-lkml-groups ()
+    "Subscribe to Linux Kernel Mailing List groups."
+    (interactive)
+    (let ((lkml-groups '("gmane.linux.kernel"
+                         "gmane.linux.kernel.stable"
+                         "gmane.linux.kernel.mm"
+                         "gmane.linux.kernel.security"
+                         "gmane.linux.kernel.cross-arch")))
+      (dolist (group lkml-groups)
+        (gnus-group-unsubscribe-group group)
+        (gnus-group-subscribe-group group))))
+
+  ;; Useful key bindings for Gnus
+  (with-eval-after-load 'gnus-group
+    (define-key gnus-group-mode-map (kbd "C-c l") #'my/subscribe-lkml-groups))
+
+  ;; Article mode enhancements
+  (with-eval-after-load 'gnus-art
+    ;; Better article display
+    (setq gnus-article-display-hook
+          '(gnus-article-de-quoted-unreadable
+            gnus-article-strip-leading-blank-lines
+            gnus-article-strip-multiple-blank-lines
+            gnus-article-strip-trailing-blank-lines))
+
+    ;; Custom function to save patches from LKML
+    (defun my/save-lkml-patch ()
+      "Save the current article as a patch file."
+      (interactive)
+      (let* ((subject (gnus-summary-article-subject))
+             (filename (concat "~/patches/"
+                               (replace-regexp-in-string "[^a-zA-Z0-9-]" "_" subject)
+                               ".patch")))
+        (gnus-summary-save-article-file filename)))
+
+    (define-key gnus-article-mode-map (kbd "C-c p") #'my/save-lkml-patch))
+
+  ;; Summary mode enhancements
+  (with-eval-after-load 'gnus-sum
+    ;; Mark all messages as read when exiting
+    (setq gnus-summary-exit-hook
+          '(gnus-summary-bubble-group))
+
+    ;; Custom function to reply to LKML with proper formatting
+    (defun my/lkml-reply ()
+      "Reply to LKML message with proper formatting."
+      (interactive)
+      (gnus-summary-reply-with-original)
+      ;; Add any LKML-specific reply formatting here
+      (message-goto-body)
+      (insert "\n"))
+
+    (define-key gnus-summary-mode-map (kbd "R") #'my/lkml-reply))
+
+  ;; Optional: Configuration for reading patches and code
+  (use-package diff-mode
+    :ensure nil
+    :config
+    ;; Better patch viewing in Gnus articles
+    (add-hook 'gnus-article-mode-hook
+              (lambda ()
+                (when (string-match "patch\\|diff" (or gnus-newsgroup-name ""))
+                  (diff-mode)))))
+
+  ;; Optional: Enhanced search capabilities
+  (use-package gnus-search
+    :ensure nil
+    :config
+    (setq gnus-search-use-parsed-queries t))
+
+  ;; Initialize Gnus directories
+  (defun my/setup-gnus-directories ()
+    "Create necessary directories for Gnus."
+    (interactive)
+    (dolist (dir '("~/.gnus.d/"
+                   "~/.gnus.d/saved/"
+                   "~/.gnus.d/cache/"
+                   "~/.gnus.d/kill/"
+                   "~/patches/"))
+      (unless (file-exists-p dir)
+        (make-directory dir t))))
+
+  ;; Call setup function
+  (my/setup-gnus-directories)
+
+  ;; Startup message
+  (message "Gnus LKML configuration loaded. Use M-x gnus to start, then C-c l to subscribe to LKML groups.")
+#+end_src
 * Tools
 
 ** Mail
