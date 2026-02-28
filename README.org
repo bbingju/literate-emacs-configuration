@@ -603,6 +603,21 @@ Override line-numbers-mode in org-mode.
   (add-hook 'org-mode-hook (lambda () (display-line-numbers-mode 0)))
 #+end_src
 
+** Ediff with Org files
+
+Org 파일을 ediff로 비교할 때 접혀있는 heading을 자동으로 펼쳐서 diff를 볼 수 있게 한다.
+
+#+begin_src emacs-lisp
+  (defun my/ediff-expand-org-buffer ()
+    "Expand all org headings in current buffer for ediff.
+Widen first so headings outside a narrowed region are also unfolded."
+    (when (derived-mode-p 'org-mode)
+      (widen)
+      (org-fold-show-all)))
+
+  (add-hook 'ediff-prepare-buffer-hook #'my/ediff-expand-org-buffer)
+#+end_src
+
 # ** org-roam
 
 #    #+begin_src emacs-lisp
