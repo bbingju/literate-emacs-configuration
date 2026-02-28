@@ -1277,9 +1277,9 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
             (expand-file-name "share/emacs/site-lisp/*/mu4e*" mu-prefix)))))
 
   (when-let* ((mu4e-path (my/find-mu4e-load-path)))
+    (add-to-list 'load-path mu4e-path)
     (use-package mu4e
       :ensure nil
-      :load-path mu4e-path
       :config
       (setq mu4e-maildir "~/Mail")
       (setq mu4e-update-interval 300)
