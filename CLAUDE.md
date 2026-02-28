@@ -67,12 +67,20 @@ M-x load-file RET lisp/<module>.el
 
 ### Automated Tests
 
-Run `test-readme.el` to validate README.org structure and syntax:
+Tests use ERT (Emacs Lisp Regression Testing) and live under `test/`:
+
 ```sh
-emacs --batch -l test-readme.el
+# Run all tests
+./test/run-tests.sh
+
+# Run a single test file
+emacs --batch -L . -L test -l test/test-helper.el -l test/test-readme-structure.el -f ert-run-tests-batch-and-exit
 ```
 
-This checks: org parsing, expected headings, elisp block syntax, use-package structure, init.el integration, platform macro definitions, custom module existence, and balanced begin/end_src pairs.
+Test files:
+- **test/test-helper.el** - Common setup (paths, requires)
+- **test/test-readme-structure.el** - README.org structure and syntax validation
+- **test/test-ediff-org.el** - Ediff org folding functionality
 
 ## Key Bindings Reference
 
