@@ -1518,6 +1518,10 @@ Handles embedded single quotes by replacing ' with '\"'\"'."
     (use-package ai-code
       :config
       (ai-code-set-backend  'claude-code-ide) ;; use claude-code-ide as backend
+      ;; Workaround: ai-code wraps resume with a lambda that passes a prefix
+      ;; arg, but claude-code-ide-resume accepts 0 args.
+      ;; See https://github.com/tninja/ai-code-interface.el/issues/205
+      (advice-add 'claude-code-ide-resume :filter-args #'ignore)
       ;; Enable global keybinding for the main menu
       (global-set-key (kbd "C-c i") #'ai-code-menu)
       ;; Terminal backend: eat for Linux/macOS
