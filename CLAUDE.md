@@ -81,6 +81,9 @@ Test files:
 - **test/test-helper.el** - Common setup (paths, requires)
 - **test/test-readme-structure.el** - README.org structure and syntax validation
 - **test/test-ediff-org.el** - Ediff org folding functionality
+- **test/test-custom-functions.el** - Custom utility functions and macros
+- **test/test-fontutil.el** - Font utility functions (lisp/fontutil.el)
+- **test/test-c-ts-mode.el** - C/C++ tree-sitter mode (lisp/my-c-ts-mode.el)
 
 ## Key Bindings Reference
 

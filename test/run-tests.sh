@@ -10,4 +10,7 @@ emacs --batch -L . -L test \
   -l test/test-helper.el \
   -l test/test-readme-structure.el \
   -l test/test-ediff-org.el \
+  -l test/test-custom-functions.el \
+  -l test/test-fontutil.el \
+  -l test/test-c-ts-mode.el \
   -f ert-run-tests-batch-and-exit
