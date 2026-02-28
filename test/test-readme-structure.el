@@ -165,5 +165,62 @@ Blocks under COMMENT headings are excluded."
                    (format "Uppercase block marker at line %d: %s"
                            (line-number-at-pos) (match-string 0))))))))))))
 
+(ert-deftest test-readme/no-duplicate-use-package ()
+  "No package is declared via use-package more than once (outside COMMENT headings)."
+  (with-temp-buffer
+    (insert-file-contents test-readme-file)
+    (org-mode)
+    (let ((packages '()))
+      (org-element-map (org-element-parse-buffer) 'src-block
+        (lambda (blk)
+          (let ((lang (org-element-property :language blk))
+                (value (org-element-property :value blk)))
+            ;; Skip blocks under COMMENT headings
+            (let ((parent (org-element-property :parent blk))
+                  (in-comment nil))
+              (while parent
+                (when (and (eq (org-element-type parent) 'headline)
+                           (org-element-property :commentedp parent))
+                  (setq in-comment t))
+                (setq parent (org-element-property :parent parent)))
+              (unless in-comment
+                (when (member lang '("emacs-lisp" "elisp"))
+                  (with-temp-buffer
+                    (insert value)
+                    (goto-char (point-min))
+                    (while (re-search-forward
+                            "(use-package \\([a-zA-Z][a-zA-Z0-9_-]*\\)" nil t)
+                      (push (match-string 1) packages)))))))))
+      (let ((seen '()))
+        (dolist (pkg packages)
+          (when (member pkg seen)
+            (ert-fail (format "Duplicate use-package declaration: %s" pkg)))
+          (push pkg seen))))))
+
+(ert-deftest test-readme/no-hardcoded-emacs-d-path ()
+  "No elisp block contains hardcoded ~/.emacs.d/ path (use user-emacs-directory)."
+  (with-temp-buffer
+    (insert-file-contents test-readme-file)
+    (org-mode)
+    (org-element-map (org-element-parse-buffer) 'src-block
+      (lambda (blk)
+        (let ((lang (org-element-property :language blk))
+              (value (org-element-property :value blk))
+              (line (org-element-property :begin blk)))
+          ;; Skip blocks under COMMENT headings
+          (let ((parent (org-element-property :parent blk))
+                (in-comment nil))
+            (while parent
+              (when (and (eq (org-element-type parent) 'headline)
+                         (org-element-property :commentedp parent))
+                (setq in-comment t))
+              (setq parent (org-element-property :parent parent)))
+            (unless in-comment
+              (when (and (member lang '("emacs-lisp" "elisp"))
+                         (string-match-p "\"~/\\.emacs\\.d/" value))
+                (ert-fail
+                 (format "Hardcoded ~/.emacs.d/ path in block at line %d; use user-emacs-directory"
+                         line))))))))))
+
 (provide 'test-readme-structure)
 ;;; test-readme-structure.el ends here
