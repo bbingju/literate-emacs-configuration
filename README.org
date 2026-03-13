@@ -298,6 +298,31 @@ Hide =tool-bar= and =scroll-bar=.
    '(tool-bar-mode scroll-bar-mode))
 #+end_src
 
+#+begin_src elisp
+  (use-package beacon
+    :config
+    (beacon-mode 1)
+    (setq beacon-color "#ffcc00"    ; bright yellow flash
+          beacon-size 60
+          beacon-blink-duration 0.3
+          beacon-blink-when-window-scrolls t
+          beacon-blink-when-window-changes t
+          beacon-blink-when-point-moves-vertically 10))
+#+end_src
+
+#+begin_src elisp
+  (use-package dimmer
+    :config
+    (setq dimmer-fraction 0.4)
+    (dimmer-configure-which-key)
+    (dimmer-configure-magit)
+    (dimmer-mode t))
+#+end_src
+
+#+begin_src elisp
+  (global-hl-line-mode 1)
+#+end_src
+
 ** doom-themes
 
 #+begin_src emacs-lisp
@@ -319,7 +344,7 @@ Hide =tool-bar= and =scroll-bar=.
   (use-package doom-modeline
     :hook (after-init . doom-modeline-mode)
     :config
-    (setq doom-modeline-height 38)
+    (setq doom-modeline-height 48)
     (setq doom-modeline-project-detection 'auto)
     (setq doom-modeline-buffer-file-name-style 'truncate-upto-project)
 
