@@ -1022,6 +1022,24 @@ eglot 기반의 Rust 개발 환경을 설정한다.
     :mode "\\.toml\\'")
 #+end_src
 
+** Typescript
+
+#+begin_src elisp
+  ;; Auto-associate file extensions
+  (add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
+  (add-to-list 'auto-mode-alist '("\\.tsx\\'" . tsx-ts-mode))
+
+  ;; Install the grammar if not already present
+  (add-to-list 'treesit-language-source-alist
+               '(typescript "https://github.com/tree-sitter/tree-sitter-typescript"
+                            "master" "typescript/src"))
+  (add-to-list 'treesit-language-source-alist
+               '(tsx "https://github.com/tree-sitter/tree-sitter-typescript"
+                     "master" "tsx/src"))
+
+  ;; Install grammars: M-x treesit-install-language-grammar RET typescript
+#+end_src
+
 ** Arduino
 
 #+begin_src emacs-lisp
