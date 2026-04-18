@@ -602,23 +602,24 @@ Widen first so headings outside a narrowed region are also unfolded."
 
 #+begin_src elisp
   (setq treesit-language-source-alist
-     '((bash "https://github.com/tree-sitter/tree-sitter-bash")
-       (c "http://github.com/tree-sitter/tree-sitter-c")
-       (cpp "https://github.com/tree-sitter/tree-sitter-cpp")
-       (cmake "https://github.com/uyha/tree-sitter-cmake")
-       (css "https://github.com/tree-sitter/tree-sitter-css")
-       (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-       (go "https://github.com/tree-sitter/tree-sitter-go")
-       (html "https://github.com/tree-sitter/tree-sitter-html")
-       (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
-       (json "https://github.com/tree-sitter/tree-sitter-json")
-       (make "https://github.com/alemuller/tree-sitter-make")
-       (python "https://github.com/tree-sitter/tree-sitter-python")
-       (rust "https://github.com/tree-sitter/tree-sitter-rust")
-       (toml "https://github.com/tree-sitter/tree-sitter-toml")
-       (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-       (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-       (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+        '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+          (c "http://github.com/tree-sitter/tree-sitter-c")
+          (cpp "https://github.com/tree-sitter/tree-sitter-cpp")
+          (cmake "https://github.com/uyha/tree-sitter-cmake")
+          (css "https://github.com/tree-sitter/tree-sitter-css")
+          (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+          (go "https://github.com/tree-sitter/tree-sitter-go")
+          (html "https://github.com/tree-sitter/tree-sitter-html")
+          (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+          (json "https://github.com/tree-sitter/tree-sitter-json")
+          (make "https://github.com/alemuller/tree-sitter-make")
+          (dart "https://github.com/UserNobody14/tree-sitter-dart" "master" "src")
+          (python "https://github.com/tree-sitter/tree-sitter-python")
+          (rust "https://github.com/tree-sitter/tree-sitter-rust")
+          (toml "https://github.com/tree-sitter/tree-sitter-toml")
+          (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+          (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+          (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
 #+end_src
 
 ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist))~ 와 같은 명령으로 이 목록에 있는 모듈들을 한번에 설치할 수 있다.
@@ -904,6 +905,14 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
   (add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
   (add-to-list 'major-mode-remap-alist
                '(c-or-c++-mode . c-or-c++-ts-mode))
+#+end_src
+
+** Dart
+
+#+begin_src elisp
+  (use-package dart-ts-mode
+    :vc (:url "https://github.com/50ways2sayhard/dart-ts-mode" :rev :newest)
+    :mode ("\\.dart\\'" . dart-ts-mode))
 #+end_src
 
 ** Python
