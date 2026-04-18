@@ -909,10 +909,41 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
 
 ** Dart
 
+Flutter SDK 경로는 ~FLUTTER_ROOT~ 환경변수로 지정하거나, 아래 후보 경로 중 존재하는 첫 번째 위치를 자동으로 사용한다. SDK가 발견되면 ~exec-path~ 와 ~PATH~ 에 추가하여 ~flutter~/~dart~ 명령을 Emacs 서브프로세스에서도 사용할 수 있게 하고, eglot의 dart language server도 해당 SDK의 ~dart~ 를 가리키도록 고정한다.
+
 #+begin_src elisp
+  (defcustom my/flutter-bin-dir
+    (or (when-let* ((root (getenv "FLUTTER_ROOT")))
+          (expand-file-name "bin" root))
+        (seq-find #'file-directory-p
+                  (mapcar #'expand-file-name
+                          '("~/flutter/bin"
+                            "~/development/flutter/bin"
+                            "~/ws/tools/flutter/bin"
+                            "/opt/flutter/bin"))))
+    "Directory containing the Flutter SDK's `flutter' and `dart' executables.
+  Set the FLUTTER_ROOT environment variable to override auto-detection."
+    :type '(choice (const :tag "Not found" nil) directory)
+    :group 'my)
+
+  (when my/flutter-bin-dir
+    (add-to-list 'exec-path my/flutter-bin-dir)
+    (setenv "PATH" (concat my/flutter-bin-dir path-separator (getenv "PATH"))))
+
   (use-package dart-ts-mode
     :vc (:url "https://github.com/50ways2sayhard/dart-ts-mode" :rev :newest)
-    :mode ("\\.dart\\'" . dart-ts-mode))
+    :mode ("\\.dart\\'" . dart-ts-mode)
+    :hook (dart-ts-mode . eglot-ensure)
+    :init
+    (with-eval-after-load 'eglot
+      ;; Pin the language server to the Flutter-bundled Dart, avoiding any
+      ;; conflict with a system-wide Dart SDK that might also be on PATH.
+      (when my/flutter-bin-dir
+        (add-to-list 'eglot-server-programs
+                     `(dart-ts-mode
+                       . (,(expand-file-name "dart" my/flutter-bin-dir)
+                          "language-server"
+                          "--client-id" "emacs.eglot-dart"))))))
 #+end_src
 
 ** Python
