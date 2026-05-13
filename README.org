@@ -1179,8 +1179,8 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
     (setq markdown-command "cmark-gfm -e table -e autolink -e strikethrough -e tasklist")
     (setq markdown-css-paths (list (expand-file-name "~/.config/markdown/github.css")))
     :bind (:map markdown-mode-map
-           ;; Preview
-           ("C-c p" . markdown-preview)
+           ;; Preview (C-c p is reserved for projectile; use the default
+           ;; `C-c C-c p' for `markdown-preview' instead)
            ("C-c P" . markdown-live-preview-mode)
            ;; Insert
            ("C-c l" . markdown-insert-link)
