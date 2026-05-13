@@ -52,11 +52,28 @@
         (eglot-format-buffer)
       (indent-for-tab-command))))
 
+(defun my/clang-format-region-smart (start end)
+  "Indent region using clang-format / eglot when possible.
+Used as `indent-region-function' so that \\[indent-region]
+respects `.clang-format' in eglot-managed C/C++ buffers."
+  (cond
+   ((my/clang-format-available-p)
+    (let ((clang-format-style-option "file"))
+      (clang-format-region start end)))
+   ((and (featurep 'eglot) (eglot-current-server))
+    (eglot-format start end))
+   (t
+    ;; Fall back to the default line-by-line indentation.
+    (let ((indent-region-function nil))
+      (indent-region start end)))))
+
 (defun my/c-ts-mode-setup ()
   "Custom indentation and tooling for `c-ts-mode'."
   (setq-local indent-tabs-mode t
               tab-width 8
-              c-ts-mode-indent-offset 8)
+              c-ts-mode-indent-offset 8
+              ;; Make C-M-\ (indent-region) honor .clang-format when available.
+              indent-region-function #'my/clang-format-region-smart)
   ;; Enable electric-pair-mode as recommended for tree-sitter C/C++ modes
   (electric-pair-local-mode 1)
   ;; Bind TAB to smart clang-format/indent.
