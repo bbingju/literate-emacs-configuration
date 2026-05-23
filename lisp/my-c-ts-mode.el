@@ -24,6 +24,7 @@
 
 (require 'cc-mode)                      ;; provide c-mode-base-map for clang-format
 (require 'subr-x)                       ;; for when-let etc.
+(require 'cl-lib)                       ;; for cl-incf
 (require 'clang-format nil t)           ;; soft-require, only if installed
 
 (defgroup my/c-ts nil
@@ -101,6 +102,88 @@ respects `.clang-format' in eglot-managed C/C++ buffers."
   (setq my/c-ts-mode-format-on-save (not my/c-ts-mode-format-on-save))
   (message "clang-format on save %s"
            (if my/c-ts-mode-format-on-save "enabled" "disabled")))
+
+;; ----------------------------------------------------------------------------
+;; .clang-format  →  .dir-locals.el
+;; ----------------------------------------------------------------------------
+
+(defconst my/clang-format--dir-locals-mapping
+  '((TabWidth    (tab-width)                              integer)
+    (IndentWidth (c-basic-offset c-ts-mode-indent-offset) integer)
+    (UseTab      (indent-tabs-mode)                       use-tab)
+    (ColumnLimit (fill-column)                            integer))
+  "Mapping from `.clang-format' keys to Emacs variables.
+Each entry is (CF-KEY (EMACS-VAR...) CONVERTER).  CONVERTER is a
+symbol naming the value transform applied by
+`my/clang-format--convert-value'.")
+
+(defconst my/clang-format--target-modes
+  '(c-mode c-ts-mode c++-mode c++-ts-mode)
+  "Modes that receive generated dir-local variables.")
+
+(defun my/clang-format-parse-config (file)
+  "Parse FILE (a .clang-format) and return an alist of recognised values.
+Only top-level keys listed in `my/clang-format--dir-locals-mapping'
+are captured; nested entries (lines starting with whitespace) are
+ignored, so blocks like `BraceWrapping:' do not pollute the result.
+Integer values are converted with `string-to-number'; `UseTab' is
+returned as the trimmed string."
+  (let ((result nil))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (while (re-search-forward
+              "^\\(TabWidth\\|IndentWidth\\|UseTab\\|ColumnLimit\\)[[:space:]]*:[[:space:]]*\\([^#\n]+?\\)[[:space:]]*$"
+              nil t)
+        (let* ((key (intern (match-string 1)))
+               (raw (match-string 2))
+               (val (if (memq key '(TabWidth IndentWidth ColumnLimit))
+                        (string-to-number raw)
+                      raw)))
+          (push (cons key val) result))))
+    (nreverse result)))
+
+(defun my/clang-format--convert-value (converter raw)
+  "Apply CONVERTER tag to RAW value from a parsed .clang-format."
+  (pcase converter
+    ('integer raw)
+    ('use-tab (not (equal raw "Never")))
+    (_ raw)))
+
+;;;###autoload
+(defun my/clang-format-write-dir-locals ()
+  "Generate or merge `.dir-locals.el' from the project's `.clang-format'.
+Searches upward from `default-directory' for `.clang-format', maps
+TabWidth/IndentWidth/UseTab/ColumnLimit to the corresponding Emacs
+variables, and writes them under each of `c-mode', `c-ts-mode',
+`c++-mode', `c++-ts-mode' using `add-dir-local-variable', which
+preserves unrelated existing entries.  `BasedOnStyle' inheritance is
+not resolved."
+  (interactive)
+  (let* ((root (locate-dominating-file default-directory ".clang-format"))
+         (_    (unless root
+                 (user-error "No .clang-format found in any parent directory")))
+         (cf   (expand-file-name ".clang-format" root))
+         (parsed (my/clang-format-parse-config cf))
+         (dir-locals-file-path (expand-file-name ".dir-locals.el" root))
+         (count 0))
+    (let ((default-directory root))
+      (dolist (entry my/clang-format--dir-locals-mapping)
+        (let* ((cf-key    (nth 0 entry))
+               (emacs-vars (nth 1 entry))
+               (converter  (nth 2 entry))
+               (cell       (assq cf-key parsed)))
+          (when cell
+            (let ((value (my/clang-format--convert-value converter (cdr cell))))
+              (dolist (var emacs-vars)
+                (dolist (mode my/clang-format--target-modes)
+                  (add-dir-local-variable mode var value)
+                  (cl-incf count))))))))
+    (let ((buf (find-buffer-visiting dir-locals-file-path)))
+      (when buf
+        (with-current-buffer buf
+          (save-buffer))))
+    (message "Wrote %d entries to %s" count dir-locals-file-path)))
 
 (provide 'my-c-ts-mode)
 ;;; my-c-ts-mode.el ends here
