@@ -323,6 +323,12 @@ Hide =tool-bar= and =scroll-bar=.
   (global-hl-line-mode 1)
 #+end_src
 
+자동 윈도우 분할 시 위/아래로 쪼개지 않고, 가능하면 옆의 기존 윈도우를 재사용하도록 한다. =split-height-threshold= 를 =nil= 로 두면 =split-window-sensibly= 가 수평 분할(위/아래)을 시도하지 않는다. =C-x 2= 같이 명시적으로 호출한 분할은 영향 받지 않는다.
+
+#+begin_src emacs-lisp
+  (setq split-height-threshold nil)
+#+end_src
+
 ** doom-themes
 
 #+begin_src emacs-lisp
@@ -1671,4 +1677,32 @@ Handles embedded single quotes by replacing ' with '\"'\"'."
       ;; Optional: Set up Magit integration for AI commands in Magit popups
       (with-eval-after-load 'magit
         (ai-code-magit-setup-transients))))
+#+end_src
+
+** htop frame
+
+#+begin_src elisp
+  (defun my/htop-side-window ()
+    "Open htop in vterm in a side window."
+    (interactive)
+    (let* ((buf (generate-new-buffer "*htop*"))
+           (win (display-buffer buf
+                                '(display-buffer-in-side-window
+                                  . ((side . right)
+                                     (window-width . 0.4)
+                                     (slot . 0))))))
+      (select-window win)
+      (vterm-mode)
+      (vterm-send-string "htop")
+      (vterm-send-return)
+      (set-process-sentinel
+       (get-buffer-process buf)
+       (lambda (proc _event)
+         (when (not (process-live-p proc))
+           (let ((b (process-buffer proc)))
+             (when (buffer-live-p b)
+               (let ((w (get-buffer-window b t)))
+                 (when (window-live-p w)
+                   (delete-window w))
+                 (kill-buffer b)))))))))
 #+end_src
