@@ -700,13 +700,17 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
                          ,@(when jdtls-config
                              `(((java-mode) . ,jdtls-config)))))
         (add-to-list 'eglot-server-programs servers)))
-    ;; In TUI frames the inlay-hint face's :height is ignored, so the hints
-    ;; render at full cell width and break line layout. Disable them when
-    ;; running without graphics.
+    ;; In TUI frames eglot's visual extras break line layout. Inlay-hint
+    ;; face :height is ignored, so hints render at full cell width. The
+    ;; code-action indicator glyph (a wide-char like the lightning bolt)
+    ;; is overlaid via before-string on the buffer's first column,
+    ;; corrupting column math. Disable both in non-graphic frames.
     (add-hook 'eglot-managed-mode-hook
               (lambda ()
                 (unless (display-graphic-p)
-                  (eglot-inlay-hints-mode -1))))
+                  (eglot-inlay-hints-mode -1)
+                  (when (boundp 'eglot-code-action-indications)
+                    (setq-local eglot-code-action-indications nil)))))
     :hook ((bash-ts-mode cmake-ts-mode c-ts-mode c++-ts-mode java-mode) . eglot-ensure)
     :bind (:map eglot-mode-map
                   ("C-M-\\" . eglot-format)))
