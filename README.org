@@ -15,6 +15,14 @@
 
 * First of All
 
+** Lexical binding cookie
+
+Tangle된 =README.el= 의 첫 줄에 lexical-binding 쿠키를 넣어 경고를 없앤다.
+
+#+begin_src emacs-lisp
+  ;;; -*- lexical-binding: t; -*-
+#+end_src
+
 ** Speed-up at startup
 #+begin_src emacs-lisp
   (let* ((normal-gc-cons-threshold (* 20 1024 1024))

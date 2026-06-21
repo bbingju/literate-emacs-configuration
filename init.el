@@ -1,5 +1,5 @@
-;;; .emacs file
-;;; 
+;;; init.el --- Emacs init -*- lexical-binding: t; -*-
+;;;
 ;;; Author: Phil Hwang <pjhwang@gmail.com>
 
 (require 'org)
