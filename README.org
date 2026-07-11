@@ -1712,6 +1712,33 @@ Handles embedded single quotes by replacing ' with '\"'\"'."
         (ai-code-magit-setup-transients))))
 #+end_src
 
+장문의 프롬프트는 Claude Code의 외부 에디터 기능을 이용해 Emacs 버퍼에서 작성할 수 있다. Claude Code 입력창에서 =Ctrl+G= 를 누르면 작성 중인 프롬프트가 =$EDITOR= 로 열리는데, ~EDITOR=emacsclient~ 로 설정해 두면 현재 Emacs 세션 안에 버퍼가 열린다. 편집을 마치고 =C-x #= (=server-edit=)을 누르면 내용이 다시 Claude Code 입력창으로 돌아간다. 단, vterm은 기본적으로 =C-g= 를 가로채므로(=vterm-keymap-exceptions= 참고) vterm 안에서는 =C-c C-g= 로 입력해야 한다. =C-c C-g= 는 =vterm--self-insert= 에 바인딩되어 있어 마지막 키인 =C-g= 를 터미널에 그대로 전달한다. 참고로 =C-q= (=vterm-send-next-key=)는 =read-event= 로 다음 키를 읽는데, =read-event= 는 =C-g= 를 입력으로 읽지 않고 즉시 quit을 발생시키므로 =C-g= 전달 용도로는 사용할 수 없다.
+
+한 가지 주의할 점: =emacsclient= 는 부모 프로세스가 아니라 서버 소켓 이름으로 접속하므로, 여러 Emacs 인스턴스가 떠 있으면 기본 이름(=server=)의 소켓을 먼저 차지한 인스턴스에 버퍼가 열린다. 아래 설정은 인스턴스마다 PID 기반의 고유한 서버 이름을 사용하고 vterm에 ~EMACS_SOCKET_NAME~ 환경변수를 넘겨서, 항상 해당 vterm을 띄운 바로 그 Emacs에 버퍼가 열리도록 한다.
+
+#+begin_src emacs-lisp
+  ;; Compose long Claude Code prompts in an Emacs buffer via Ctrl+G
+  ;; (press C-c C-g inside vterm to pass C-g through to the terminal).
+  ;; Claude Code opens the in-progress prompt in $EDITOR; with
+  ;; emacsclient it opens a buffer in this Emacs session.  Finish with
+  ;; C-x # (server-edit) to send the text back to the Claude prompt.
+  (unless (eq system-type 'windows-nt)
+    ;; Use a per-process server name so that each Emacs instance runs
+    ;; its own server.  With the default name only the first instance
+    ;; owns the socket, and emacsclient would open buffers there
+    ;; instead of in the Emacs hosting the vterm.
+    (require 'server)
+    (setq server-name (format "emacs-%d" (emacs-pid)))
+    (unless (server-running-p)
+      (server-start))
+    ;; Make new vterm sessions use emacsclient as their editor,
+    ;; connected to this instance's server socket.
+    (with-eval-after-load 'vterm
+      (add-to-list 'vterm-environment "EDITOR=emacsclient")
+      (add-to-list 'vterm-environment
+                   (format "EMACS_SOCKET_NAME=%s" server-name))))
+#+end_src
+
 ** htop frame
 
 #+begin_src elisp
