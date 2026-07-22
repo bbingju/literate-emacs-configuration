@@ -732,8 +732,15 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
       (dolist (servers `(((sh-mode bash-ts-mode) . ("bash-language-server" "start"))
                          ((python-mode python-ts-mode) . ("jedi-language-server"))
                          ((cmake-mode cmake-ts-mode) . ("cmake-language-server"))
-                         ((c-mode c-ts-mode) . ("clangd"))
-                         ((c++-mode c++-ts-mode) . ("clangd"))
+                         ;; --query-driver whitelists cross toolchains (e.g. Zephyr's
+                         ;; arm-zephyr-eabi-gcc) so clangd extracts their builtin/system
+                         ;; include paths; --background-index speeds up xref/references.
+                         ((c-mode c-ts-mode)
+                          . ("clangd" "--background-index" "--header-insertion=never"
+                             "--query-driver=**/*-gcc,**/*-g++,/usr/bin/*gcc"))
+                         ((c++-mode c++-ts-mode)
+                          . ("clangd" "--background-index" "--header-insertion=never"
+                             "--query-driver=**/*-gcc,**/*-g++,/usr/bin/*gcc"))
                          ,@(when jdtls-config
                              `(((java-mode) . ,jdtls-config)))))
         (add-to-list 'eglot-server-programs servers)))
