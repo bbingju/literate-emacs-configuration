@@ -484,7 +484,8 @@ Hide =tool-bar= and =scroll-bar=.
   (setq org-agenda-files (list (my/org-expand "inbox.org")
                                (my/org-expand "work.org")
                                (my/org-expand "projects.org")
-                               (my/org-expand "repeaters.org")))
+                               (my/org-expand "repeaters.org")
+                               (my/org-expand "redmine.org")))
 
   (setq org-refile-targets
         `((,(my/org-expand "todo.org") :maxlevel . 3)
@@ -517,7 +518,10 @@ Hide =tool-bar= and =scroll-bar=.
             (todo "TODO"
                   ((org-agenda-overriding-header "Unscheduled projects tasks")
                    (org-agenda-files (list ,(my/org-expand "projects.org")))
-                   (org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))))))))
+                   (org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))))
+            (alltodo ""
+                  ((org-agenda-overriding-header "Redmine 할당 이슈")
+                   (org-agenda-files (list ,(my/org-expand "redmine.org")))))))))
 
   (global-set-key (kbd "C-c c") #'org-capture)
   (global-set-key (kbd "C-c a") #'org-agenda)
@@ -605,6 +609,53 @@ Override line-numbers-mode in org-mode.
 
 #+begin_src emacs-lisp
   (add-hook 'org-mode-hook (lambda () (display-line-numbers-mode 0)))
+#+end_src
+
+** Redmine 이슈 트래킹
+
+회사 Redmine([[https://dev.roseaudio.kr/redmine/]])에서 나에게 할당된 이슈를 org
+파일(=~/org/redmine.org=)로 가져와 agenda에서 함께 추적한다. 읽기 전용
+단방향 동기화이며, REST API 호출에는 [[https://github.com/adamdac/elmine][elmine]]을 사용한다.
+
+API 키는 커밋되지 않도록 =auth-source= 로 관리한다. =~/.authinfo.gpg= 에 다음
+한 줄을 추가한다(키는 Redmine → 내 계정 → API 접근 키에서 확인):
+
+#+begin_example
+machine dev.roseaudio.kr login apikey password YOUR_REDMINE_API_KEY
+#+end_example
+
+- =M-x redmine-org-sync= : 이슈를 가져와 파일을 갱신
+- =M-x redmine-org-open= : 파일 열기(없으면 먼저 동기화)
+- =C-c r= : 동기화 후 파일 열기
+
+수정 사항을 Redmine 에 반영하는 것은 **이슈 헤딩 위에 커서를 두고** 전용
+명령으로 즉시 PUT 한다(=REDMINE_ID= 속성을 사용). org→Redmine 상태 매핑이
+다대일이라 자동 역매핑은 모호하므로, 상태 변경은 워크플로우가 허용하는 실제
+Redmine 상태 목록에서 직접 고른다(=include=allowed_statuses= 활용). PUT 성공은
+HTTP 204 이므로 2xx 를 성공으로 판정한다.
+
+- =C-c R s= : 상태 변경 (허용 상태 중 선택; =C-u= 붙이면 코멘트도 함께)
+- =C-c R n= : 코멘트(노트) 추가
+- =C-c R d= : 진행률(done ratio) 설정
+
+=org-agenda= 를 열 때 자동으로 먼저 동기화한다. 매번 네트워크 호출을 하면
+느려지므로 =redmine-org-sync-interval= (기본 300초) 이내엔 건너뛰고, sync가
+실패해도 agenda 는 정상적으로 열리도록 에러를 삼킨다.
+
+#+begin_src emacs-lisp
+  (use-package elmine)
+
+  (require 'redmine-org)
+  (global-set-key (kbd "C-c r")
+                  (lambda () (interactive) (redmine-org-sync) (redmine-org-open)))
+
+  ;; Write-back commands (run on the issue heading at point).
+  (global-set-key (kbd "C-c R s") #'redmine-org-set-status)
+  (global-set-key (kbd "C-c R n") #'redmine-org-add-note)
+  (global-set-key (kbd "C-c R d") #'redmine-org-set-done-ratio)
+
+  (advice-add 'org-agenda :before
+              (lambda (&rest _) (redmine-org-maybe-sync)))
 #+end_src
 
 ** Ediff with Org files
