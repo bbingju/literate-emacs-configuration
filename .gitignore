@@ -65,3 +65,26 @@ flycheck_*.el
 
 # Private mail account settings
 mu4e-accounts.el
+
+# projectile runtime caches
+.projectile-cache.eld
+projectile-frecency.eld
+/projects
+
+# IELM history
+ielm-history.eld
+
+# Emacs multisession data
+/multisession/
+
+# Installed language servers / data (eglot: eclipse.jdt.ls, ...)
+/share/
+
+# rust-playground scratch projects
+/rust-playground/
+
+# saved tutorial progress (Korean.tut, ...)
+/tutorial/
+
+# backup / merge leftovers
+*.orig
