@@ -10,42 +10,7 @@
 (require 'test-helper)
 (require 'cl-lib)
 
-;; Define functions under test without triggering mode hooks.
-
-(defcustom my/c-ts-mode-format-on-save nil
-  "If non-nil, automatically run clang-format on save when possible."
-  :type 'boolean
-  :group 'my/c-ts)
-
-(defun my/clang-format-available-p ()
-  "Return non-nil if clang-format can be used in this buffer."
-  (and (featurep 'clang-format)
-       (executable-find "clang-format")
-       (locate-dominating-file default-directory ".clang-format")))
-
-(defun my/toggle-c-ts-format-on-save ()
-  "Toggle automatic clang-format on save for C/C++ buffers."
-  (interactive)
-  (setq my/c-ts-mode-format-on-save (not my/c-ts-mode-format-on-save))
-  (message "clang-format on save %s"
-           (if my/c-ts-mode-format-on-save "enabled" "disabled")))
-
-(defun my/clang-format-parse-config (file)
-  "Parse FILE (a .clang-format) and return an alist of recognised values."
-  (let ((result nil))
-    (with-temp-buffer
-      (insert-file-contents file)
-      (goto-char (point-min))
-      (while (re-search-forward
-              "^\\(TabWidth\\|IndentWidth\\|UseTab\\|ColumnLimit\\)[[:space:]]*:[[:space:]]*\\([^#\n]+?\\)[[:space:]]*$"
-              nil t)
-        (let* ((key (intern (match-string 1)))
-               (raw (match-string 2))
-               (val (if (memq key '(TabWidth IndentWidth ColumnLimit))
-                        (string-to-number raw)
-                      raw)))
-          (push (cons key val) result))))
-    (nreverse result)))
+(load (expand-file-name "lisp/my-c-ts-mode.el" test-project-root) nil t)
 
 (defmacro test-c-ts/with-clang-format (content &rest body)
   "Write CONTENT to a temp .clang-format file bound as `it', run BODY."
@@ -161,6 +126,49 @@
   (test-c-ts/with-clang-format "UseTab:    ForIndentation   \n"
     (should (equal (my/clang-format-parse-config it)
                    '((UseTab . "ForIndentation"))))))
+
+(ert-deftest test-c-ts/call-hierarchy-converts-ranges-with-eglot ()
+  "Call hierarchy delegates fallback and call-site ranges to Eglot."
+  (let* ((selection '(:start (:line 2 :character 5)
+                      :end (:line 2 :character 8)))
+         (call-range '(:start (:line 4 :character 7)
+                       :end (:line 4 :character 10)))
+         (item '(:name "origin" :uri "file:///origin.c"))
+         (ranged-target
+          (list :name "callee" :uri "file:///callee.c"
+                :selectionRange selection))
+         (fallback-target
+          (list :name "fallback" :uri "file:///fallback.c"
+                :selectionRange selection))
+         (items (vector item))
+         (calls (vector
+                 (list :to ranged-target :fromRanges (vector call-range))
+                 (list :to fallback-target :fromRanges [])))
+         converted
+         shown)
+    (cl-letf (((symbol-function 'eglot--current-server-or-lose)
+               (lambda () 'test-server))
+              ((symbol-function 'eglot--TextDocumentPositionParams)
+               (lambda () '(:position t)))
+              ((symbol-function 'jsonrpc-request)
+               (lambda (_server method _params)
+                 (pcase method
+                   (:textDocument/prepareCallHierarchy items)
+                   (:callHierarchy/outgoingCalls calls))))
+              ((symbol-function 'eglot--xref-make-match)
+               (lambda (name uri range)
+                 (let ((result (list name uri range)))
+                   (setq converted (append converted (list result)))
+                   result)))
+              ((symbol-function 'xref-show-xrefs)
+               (lambda (fetcher _display-action)
+                 (setq shown (funcall fetcher)))))
+      (my/eglot--call-hierarchy 'outgoing)
+      (should
+       (equal converted
+              (list (list "callee" "file:///origin.c" call-range)
+                    (list "fallback" "file:///fallback.c" selection))))
+      (should (equal shown converted)))))
 
 (provide 'test-c-ts-mode)
 ;;; test-c-ts-mode.el ends here

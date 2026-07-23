@@ -10,6 +10,11 @@
 ;;   available ⇒ run clang-format-buffer, otherwise fallback to normal indent
 ;; • Optional on-save formatting via `my/c-ts-mode-format-on-save` (default: nil)
 ;;   Toggle with `M-x my/toggle-c-ts-format-on-save`
+;; • LSP call hierarchy via clangd:
+;;     C-c C-h i  →  my/eglot-incoming-calls  (callers)
+;;     C-c C-h o  →  my/eglot-outgoing-calls  (callees)
+;;   Results are shown in an xref buffer; invoke recursively on entries to
+;;   walk further up/down the call graph.
 ;;
 ;; NOTE:
 ;;   The `clang-format` ELPA package binds keys in `c-mode-base-map`, which
@@ -25,6 +30,8 @@
 (require 'cc-mode)                      ;; provide c-mode-base-map for clang-format
 (require 'subr-x)                       ;; for when-let etc.
 (require 'cl-lib)                       ;; for cl-incf
+(require 'xref)                         ;; for call-hierarchy result display
+(require 'eglot)                        ;; LSP range conversion and xref helpers
 (require 'clang-format nil t)           ;; soft-require, only if installed
 
 (defgroup my/c-ts nil
@@ -68,6 +75,60 @@ respects `.clang-format' in eglot-managed C/C++ buffers."
     (let ((indent-region-function nil))
       (indent-region start end)))))
 
+(defun my/eglot--call-hierarchy (direction)
+  "Show LSP call hierarchy at point in DIRECTION.
+DIRECTION is the symbol `incoming' (callers) or `outgoing' (callees).
+Results are rendered via `xref-show-xrefs', so n/p/RET behave as usual."
+  (let* ((server (eglot--current-server-or-lose))
+         (items  (jsonrpc-request
+                  server :textDocument/prepareCallHierarchy
+                  (eglot--TextDocumentPositionParams))))
+    (when (seq-empty-p items)
+      (user-error "No call hierarchy item at point"))
+    (let* ((item   (aref items 0))
+           (method (if (eq direction 'incoming)
+                       :callHierarchy/incomingCalls
+                     :callHierarchy/outgoingCalls))
+           (key    (if (eq direction 'incoming) :from :to))
+           (calls  (jsonrpc-request server method (list :item item))))
+      (when (seq-empty-p calls)
+        (user-error "No %s calls for %s"
+                    direction (plist-get item :name)))
+      (let ((results
+             (eglot--collecting-xrefs (collect)
+               (seq-doseq (c calls)
+                 (let* ((target     (plist-get c key))
+                        (target-uri (plist-get target :uri))
+                        (name       (plist-get target :name))
+                        (ranges     (plist-get c :fromRanges)))
+                   (if (seq-empty-p ranges)
+                       (collect
+                        (eglot--xref-make-match
+                         name target-uri
+                         (plist-get target :selectionRange)))
+                     ;; Incoming ranges belong to the caller (TARGET);
+                     ;; outgoing ranges belong to the original item.
+                     (let ((range-uri (if (eq direction 'incoming)
+                                          target-uri
+                                        (plist-get item :uri))))
+                       (seq-doseq (range ranges)
+                         (collect
+                          (eglot--xref-make-match
+                           name range-uri range))))))))))
+        (xref-show-xrefs (lambda () results) nil)))))
+
+;;;###autoload
+(defun my/eglot-incoming-calls ()
+  "Show callers of the function at point via LSP `callHierarchy/incomingCalls'."
+  (interactive)
+  (my/eglot--call-hierarchy 'incoming))
+
+;;;###autoload
+(defun my/eglot-outgoing-calls ()
+  "Show callees of the function at point via LSP `callHierarchy/outgoingCalls'."
+  (interactive)
+  (my/eglot--call-hierarchy 'outgoing))
+
 (defun my/c-ts-mode-setup ()
   "Custom indentation and tooling for `c-ts-mode'."
   (setq-local indent-tabs-mode t
@@ -89,7 +150,13 @@ respects `.clang-format' in eglot-managed C/C++ buffers."
                 (local-set-key (kbd "C-c C-r") #'eglot-rename)
                 (local-set-key (kbd "C-c C-a") #'eglot-code-actions)
                 (local-set-key (kbd "C-c C-d") #'eglot-find-declaration)
-                (local-set-key (kbd "C-c C-i") #'eglot-find-implementation)))
+                ;; In C, `textDocument/implementation' is only meaningful for
+                ;; C++ virtual methods; jump to the definition instead so the
+                ;; key is useful for plain C functions too.
+                (local-set-key (kbd "C-c C-i") #'xref-find-definitions)
+                ;; Call hierarchy (clangd `callHierarchy/*').
+                (local-set-key (kbd "C-c C-h i") #'my/eglot-incoming-calls)
+                (local-set-key (kbd "C-c C-h o") #'my/eglot-outgoing-calls)))
             nil t))
 
 (add-hook 'c-ts-mode-hook #'my/c-ts-mode-setup)
