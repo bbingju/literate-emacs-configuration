@@ -14,4 +14,5 @@ emacs --batch -L . -L test \
   -l test/test-fontutil.el \
   -l test/test-c-ts-mode.el \
   -l test/test-mu4e-load-path.el \
+  -l test/test-redmine-org.el \
   -f ert-run-tests-batch-and-exit

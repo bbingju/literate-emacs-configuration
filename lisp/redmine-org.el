@@ -41,6 +41,11 @@
 Matches the `machine' field of the ~/.authinfo(.gpg) entry."
   :type 'string)
 
+(defcustom redmine-org-auth-user "apikey"
+  "Login used to look up the API key via `auth-source'.
+Matches the `login' field of the ~/.authinfo(.gpg) entry."
+  :type 'string)
+
 (defcustom redmine-org-file (expand-file-name "~/org/redmine.org")
   "Org file the fetched issues are written to."
   :type 'file)
@@ -50,8 +55,9 @@ Matches the `machine' field of the ~/.authinfo(.gpg) entry."
 The special value \"me\" means the user owning the API key."
   :type 'string)
 
-(defcustom redmine-org-extra-filters '(:status_id "open" :limit 100)
+(defcustom redmine-org-extra-filters '(:status_id "open" :limit t)
   "Extra plist filters passed to `elmine/get-issues'.
+The default `:limit' value t makes elmine fetch every matching issue.
 See the Redmine REST API for available keys."
   :type '(plist))
 
@@ -116,12 +122,14 @@ Use 0 to sync on every call."
 (defun redmine-org--api-key ()
   "Return the Redmine API key from `auth-source', or signal an error."
   (let* ((found (car (auth-source-search :host redmine-org-auth-host
+                                         :user redmine-org-auth-user
                                          :max 1 :require '(:secret))))
          (secret (and found (plist-get found :secret))))
     (or (and secret (if (functionp secret) (funcall secret) secret))
         (user-error
-         "No Redmine API key for host %S in auth-source.  Add: machine %s login apikey password <KEY>"
-         redmine-org-auth-host redmine-org-auth-host))))
+         "No Redmine API key for host %S and login %S in auth-source.  Add: machine %s login %s password <KEY>"
+         redmine-org-auth-host redmine-org-auth-user
+         redmine-org-auth-host redmine-org-auth-user))))
 
 (defmacro redmine-org--with-connection (&rest body)
   "Evaluate BODY with elmine bound to this instance's host and API key."
@@ -319,17 +327,21 @@ Falls back to the full status list if the server omits allowed_statuses."
   (redmine-org--with-connection
     (let* ((issue (redmine-org--decode-tree
                    (elmine/get-issue id :include "allowed_statuses")))
-           (allowed (plist-get issue :allowed_statuses)))
+           (allowed (plist-get issue :allowed_statuses))
+           (statuses (or allowed
+                         (redmine-org--decode-tree
+                          (elmine/get-issue-statuses)))))
       (mapcar (lambda (s) (cons (plist-get s :name) (plist-get s :id)))
-              (or allowed (elmine/get-issue-statuses))))))
+              statuses))))
 
 (defun redmine-org--reflect-status (name)
   "Update the entry at point to reflect the new Redmine status NAME.
 Sets the STATUS property and the org TODO keyword without logging."
   (org-entry-put nil "STATUS" name)
-  (let ((kw (cdr (assoc name redmine-org-status-todo-alist)))
+  (let ((kw (or (cdr (assoc name redmine-org-status-todo-alist))
+                redmine-org-default-todo))
         (org-inhibit-logging t))          ; don't prompt for a state-change note
-    (when kw (org-todo kw))))
+    (org-todo kw)))
 
 ;;;###autoload
 (defun redmine-org-set-status (&optional add-note)

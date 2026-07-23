@@ -484,8 +484,7 @@ Hide =tool-bar= and =scroll-bar=.
   (setq org-agenda-files (list (my/org-expand "inbox.org")
                                (my/org-expand "work.org")
                                (my/org-expand "projects.org")
-                               (my/org-expand "repeaters.org")
-                               (my/org-expand "redmine.org")))
+                               (my/org-expand "repeaters.org")))
 
   (setq org-refile-targets
         `((,(my/org-expand "todo.org") :maxlevel . 3)
@@ -521,7 +520,9 @@ Hide =tool-bar= and =scroll-bar=.
                    (org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))))
             (alltodo ""
                   ((org-agenda-overriding-header "Redmine 할당 이슈")
-                   (org-agenda-files (list ,(my/org-expand "redmine.org")))))))))
+                   (org-agenda-files
+                    (when (file-exists-p redmine-org-file)
+                      (list redmine-org-file)))))))))
 
   (global-set-key (kbd "C-c c") #'org-capture)
   (global-set-key (kbd "C-c a") #'org-agenda)
@@ -646,6 +647,13 @@ HTTP 204 이므로 2xx 를 성공으로 판정한다.
   (use-package elmine)
 
   (require 'redmine-org)
+
+  ;; A successful `redmine-org-sync' creates and registers this file.
+  ;; Include an existing mirror for offline use, but never register a
+  ;; nonexistent file: it would make `org-agenda' prompt or abort.
+  (when (file-exists-p redmine-org-file)
+    (add-to-list 'org-agenda-files redmine-org-file t))
+
   (global-set-key (kbd "C-c r")
                   (lambda () (interactive) (redmine-org-sync) (redmine-org-open)))
 

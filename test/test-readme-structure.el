@@ -222,5 +222,17 @@ Blocks under COMMENT headings are excluded."
                  (format "Hardcoded ~/.emacs.d/ path in block at line %d; use user-emacs-directory"
                          line))))))))))
 
+(ert-deftest test-readme/redmine-agenda-uses-custom-file ()
+  "Redmine agenda configuration uses the module's customizable file path."
+  (with-temp-buffer
+    (insert-file-contents test-readme-file)
+    (let ((content (buffer-string)))
+      (should-not
+       (string-match-p "(my/org-expand \"redmine\\.org\")" content))
+      (should
+       (string-match-p "(file-exists-p redmine-org-file)" content))
+      (should
+       (string-match-p "(list redmine-org-file)" content)))))
+
 (provide 'test-readme-structure)
 ;;; test-readme-structure.el ends here
