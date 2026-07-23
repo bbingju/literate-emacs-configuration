@@ -336,12 +336,13 @@ Falls back to the full status list if the server omits allowed_statuses."
 
 (defun redmine-org--reflect-status (name)
   "Update the entry at point to reflect the new Redmine status NAME.
-Sets the STATUS property and the org TODO keyword without logging."
+Always sets the STATUS property.  Sets the org TODO keyword only when
+NAME maps to one in `redmine-org-status-todo-alist'; an unmapped status
+leaves the current keyword untouched so it is never downgraded."
   (org-entry-put nil "STATUS" name)
-  (let ((kw (or (cdr (assoc name redmine-org-status-todo-alist))
-                redmine-org-default-todo))
+  (let ((kw (cdr (assoc name redmine-org-status-todo-alist)))
         (org-inhibit-logging t))          ; don't prompt for a state-change note
-    (org-todo kw)))
+    (when kw (org-todo kw))))
 
 ;;;###autoload
 (defun redmine-org-set-status (&optional add-note)

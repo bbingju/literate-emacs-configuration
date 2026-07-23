@@ -59,24 +59,34 @@
         (should (equal statuses '(("신규" . 1))))
         (should (multibyte-string-p (caar statuses)))))))
 
-(ert-deftest test-redmine-org/unknown-status-uses-default-todo ()
-  "An unmapped Redmine status replaces the old TODO state with the default."
+(ert-deftest test-redmine-org/unknown-status-keeps-keyword ()
+  "An unmapped Redmine status updates STATUS but leaves the TODO keyword."
   (let ((redmine-org-status-todo-alist '(("Known" . "NEXT")))
         (redmine-org-default-todo "TODO")
         captured-status
-        captured-todo
-        logging-inhibited)
+        (todo-called nil))
     (cl-letf (((symbol-function 'org-entry-put)
                (lambda (_pom property value)
                  (when (equal property "STATUS")
                    (setq captured-status value))))
               ((symbol-function 'org-todo)
+               (lambda (&rest _) (setq todo-called t))))
+      (redmine-org--reflect-status "Custom Status")
+      (should (equal captured-status "Custom Status"))
+      (should-not todo-called))))
+
+(ert-deftest test-redmine-org/known-status-sets-keyword-without-logging ()
+  "A mapped Redmine status sets the org keyword with logging inhibited."
+  (let ((redmine-org-status-todo-alist '(("Known" . "NEXT")))
+        captured-todo
+        logging-inhibited)
+    (cl-letf (((symbol-function 'org-entry-put) (lambda (&rest _) nil))
+              ((symbol-function 'org-todo)
                (lambda (keyword)
                  (setq captured-todo keyword
                        logging-inhibited org-inhibit-logging))))
-      (redmine-org--reflect-status "Custom Status")
-      (should (equal captured-status "Custom Status"))
-      (should (equal captured-todo "TODO"))
+      (redmine-org--reflect-status "Known")
+      (should (equal captured-todo "NEXT"))
       (should logging-inhibited))))
 
 (provide 'test-redmine-org)
