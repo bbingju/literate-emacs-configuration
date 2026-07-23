@@ -14,19 +14,16 @@
 #+end_src
 
 * Lexical binding
+
+Tangle된 =README.el= 의 첫 줄에 lexical-binding 쿠키를 넣어 경고를 없앤다.
+쿠키는 파일 첫 줄에서만 인식되므로, 이 블록이 문서에서 가장 먼저 오는
+emacs-lisp 블록이어야 tangle 시 첫 줄에 위치한다.
+
 #+begin_src emacs-lisp
-;; -*- lexical-binding: t; -*-
+;;; -*- lexical-binding: t; -*-
 #+end_src
 
 * First of All
-
-** Lexical binding cookie
-
-Tangle된 =README.el= 의 첫 줄에 lexical-binding 쿠키를 넣어 경고를 없앤다.
-
-#+begin_src emacs-lisp
-  ;;; -*- lexical-binding: t; -*-
-#+end_src
 
 ** Speed-up at startup
 #+begin_src emacs-lisp
