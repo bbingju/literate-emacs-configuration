@@ -88,3 +88,12 @@ ielm-history.eld
 
 # backup / merge leftovers
 *.orig
+
+# lsp-mode session state
+/.lsp-session-v1
+
+# exported Claude conversation dumps (date-stamped)
+/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.txt
+
+# stale scratch copy of README.org
+/README-test.org
