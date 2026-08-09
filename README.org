@@ -337,6 +337,14 @@ Hide =tool-bar= and =scroll-bar=.
    '(tool-bar-mode scroll-bar-mode))
 #+end_src
 
+=$EDITOR=emacs= 로 외부 편집 버퍼를 열 때 시작 화면이 함께 표시되지 않도록
+한다. 파일 인자가 있으면 해당 편집 버퍼가 처음부터 프레임 전체를 사용한다.
+
+#+begin_src emacs-lisp
+  (setq inhibit-startup-screen t
+        initial-scratch-message nil)
+#+end_src
+
 #+begin_src elisp
   (use-package beacon
     :config
@@ -1628,11 +1636,44 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
     (use-package vterm
       :bind ("C-c t" . vterm)
       :config
-      (setq vterm-max-scrollback 10000)
+      (setq vterm-max-scrollback 100000)
       (setq vterm-buffer-name-string "vterm %s")))
 
   (defconst my/msys2-bash "C:\\msys64\\usr\\bin\\bash.exe"
     "MSYS2 bash executable path for Windows.")
+
+  ;; Launch Claude in an external Ghostty window on Linux/macOS.
+  ;; vterm cannot reliably preserve scrollback for Claude Code's TUI
+  ;; rerendering, so we delegate to a real terminal emulator.
+  (defun my/launch-claude-ghostty (claude-path &optional working-directory)
+    "Launch CLAUDE-PATH in a new Ghostty window.
+If WORKING-DIRECTORY is non-nil, cd there before running claude."
+    (let* ((editor-env
+            ;; Let Claude Code's Ctrl+G open a buffer in this Emacs.
+            ;; Embed the vars in the command string: macOS `open' does
+            ;; not propagate the caller's environment.
+            (if (and (boundp 'server-name) (server-running-p))
+                (format "EDITOR=emacsclient EMACS_SOCKET_NAME=%s "
+                        (shell-quote-argument server-name))
+              ""))
+           (shell-cmd (concat
+                       (when working-directory
+                         (format "cd %s && "
+                                 (shell-quote-argument
+                                  (expand-file-name working-directory))))
+                       editor-env
+                       "exec " (shell-quote-argument claude-path))))
+      (if (eq system-type 'darwin)
+          ;; Ghostty on macOS cannot be started by invoking its CLI
+          ;; binary directly; launch the app bundle through `open'.
+          (start-process "ghostty-claude" nil
+                         "open" "-na" "Ghostty" "--args"
+                         "-e" "bash" "-l" "-c" shell-cmd)
+        (let ((ghostty (executable-find "ghostty")))
+          (unless ghostty
+            (user-error "ghostty not found in PATH"))
+          (start-process "ghostty-claude" nil ghostty
+                         "-e" "bash" "-l" "-c" shell-cmd)))))
 
   ;; Claude CLI 대화형 세션 시작
   (defun claude-shell ()
@@ -1646,13 +1687,8 @@ Claude CLI를 Emacs와 통합하여 사용할 수 있는 기능들을 제공한�
                  (cmd (format "HOME='%s' %s" home claude-path)))
             (call-process "cmd" nil nil nil "/c" "start" "wt" "-w" "0" "nt"
                           my/msys2-bash "-l" "-c" cmd))
-        ;; Linux/macOS: use vterm
-        (if (fboundp 'vterm)
-            (progn
-              (vterm)
-              (vterm-send-string claude-path)
-              (vterm-send-return))
-          (user-error "vterm not available")))))
+        ;; Linux/macOS: launch Ghostty externally
+        (my/launch-claude-ghostty claude-path))))
 
   ;; Claude CLI 실행 가능 여부 확인
   (defun claude-executable-find ()
@@ -1730,14 +1766,8 @@ Handles embedded single quotes by replacing ' with '\"'\"'."
                               claude-path)))
             (call-process "cmd" nil nil nil "/c" "start" "wt" "-w" "0" "nt"
                           my/msys2-bash "-l" "-c" cmd))
-        ;; Linux/macOS: use vterm
-        (let ((default-directory project-dir))
-          (if (fboundp 'vterm-other-window)
-              (progn
-                (vterm-other-window)
-                (vterm-send-string claude-path)
-                (vterm-send-return))
-            (user-error "vterm not available"))))))
+        ;; Linux/macOS: launch Ghostty externally in project root
+        (my/launch-claude-ghostty claude-path project-dir))))
 
   ;; 키바인딩 설정
   ;; C-c A prefix for Claude/AI commands (A = AI/Assistant)
@@ -1770,11 +1800,6 @@ Handles embedded single quotes by replacing ' with '\"'\"'."
       (advice-add 'claude-code-ide-resume :filter-args #'ignore)
       ;; Enable global keybinding for the main menu
       (global-set-key (kbd "C-c i") #'ai-code-menu)
-      ;; Terminal backend: eat for Linux/macOS
-      (setq claude-code-terminal-backend 'eat)
-      ;; Optional: Turn on auto-revert buffer, so that the AI code change automatically appears in the buffer
-      (global-auto-revert-mode 1)
-      (setq auto-revert-interval 1) ;; set to 1 second for faster update
       ;; Optional: Set up Magit integration for AI commands in Magit popups
       (with-eval-after-load 'magit
         (ai-code-magit-setup-transients))))
