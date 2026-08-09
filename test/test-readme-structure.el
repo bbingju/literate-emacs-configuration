@@ -11,6 +11,30 @@
 
 (require 'test-helper)
 
+(defun test-readme-eval-defun (name)
+  "Find and evaluate the defun named NAME in README.org."
+  (catch 'found
+    (with-temp-buffer
+      (insert-file-contents test-readme-file)
+      (org-mode)
+      (org-element-map (org-element-parse-buffer) 'src-block
+        (lambda (block)
+          (when (member (org-element-property :language block)
+                        '("emacs-lisp" "elisp"))
+            (with-temp-buffer
+              (insert (org-element-property :value block))
+              (goto-char (point-min))
+              (condition-case nil
+                  (while t
+                    (let ((form (read (current-buffer))))
+                      (when (and (consp form)
+                                 (eq (car form) 'defun)
+                                 (eq (cadr form) name))
+                        (eval form t)
+                        (throw 'found t))))
+                (end-of-file nil)))))))
+    (ert-fail (format "Cannot find defun %S in README.org" name))))
+
 (ert-deftest test-readme/file-exists ()
   "README.org exists."
   (should (file-exists-p test-readme-file)))
@@ -233,6 +257,31 @@ Blocks under COMMENT headings are excluded."
        (string-match-p "(file-exists-p redmine-org-file)" content))
       (should
        (string-match-p "(list redmine-org-file)" content)))))
+
+(ert-deftest test-readme/compat-31-missing-installs-legacy-fallback ()
+  "A missing compat-31 library leaves old Emacs time formatting usable."
+  (dolist (function '(my/seconds-to-string-filter-legacy-args
+                      my/ensure-compat-31))
+    (test-readme-eval-defun function))
+  (let (advice required)
+    (cl-letf (((symbol-function 'require)
+               (lambda (feature &optional _filename _noerror)
+                 (push feature required)
+                 (not (eq feature 'compat-31))))
+              ((symbol-function 'seconds-to-string)
+               (lambda (_delay) "legacy"))
+              ((symbol-function 'advice-add)
+               (lambda (symbol where function &rest _properties)
+                 (setq advice (list symbol where function)))))
+      (my/ensure-compat-31))
+    (should (equal (nreverse required) '(compat-31 time-date)))
+    (should (equal advice
+                   '(seconds-to-string
+                     :filter-args
+                     my/seconds-to-string-filter-legacy-args)))
+    (should (equal
+             (funcall (nth 2 advice) '(1 expanded abbrev))
+             '(1)))))
 
 (provide 'test-readme-structure)
 ;;; test-readme-structure.el ends here

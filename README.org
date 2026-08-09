@@ -244,15 +244,29 @@ completion 시스템 이용 시 찾고하 하는 아이템의 이름을 처음�
 minibuffer completion이 작동 중일 때 남은 영역에 추가 정보를 표시하게 하기 위해 [[https://github.com/minad/marginalia][marginalia.el]]을 사용한다.
 
 #+begin_src elisp
-  ;; Workaround: compat-31 assumes Emacs 31 has a multi-arg
-  ;; `seconds-to-string', but some builds don't yet.  Advise the
-  ;; built-in to silently ignore the extra arguments.
-  (require 'time-date)
-  (unless (condition-case nil
-              (progn (seconds-to-string 1 'expanded 'abbrev) t)
-            (wrong-number-of-arguments nil))
-    (advice-add 'seconds-to-string :filter-args
-                (lambda (args) (list (car args)))))
+  (defun my/seconds-to-string-filter-legacy-args (args)
+    "Pass only the DELAY argument in ARGS to legacy `seconds-to-string'."
+    (list (car args)))
+
+  (defun my/ensure-compat-31 ()
+    "Load `compat-31' or install a fallback for its time formatter."
+    (unless (require 'compat-31 nil t)
+      (require 'time-date)
+      (unless (condition-case nil
+                  (progn (seconds-to-string 1 'expanded 'abbrev) t)
+                (wrong-number-of-arguments nil))
+        (advice-add 'seconds-to-string :filter-args
+                    #'my/seconds-to-string-filter-legacy-args))))
+
+  ;; compat.elc may have been byte-compiled on Emacs >= 31, in which
+  ;; case its (compat--maybe-require) expanded to nothing and the
+  ;; compat-31 polyfills (including `compat--seconds-to-string', which
+  ;; marginalia calls via compat-call) are never loaded. Force-load
+  ;; them ourselves on older Emacs, retaining a safe fallback when only
+  ;; the built-in compat stub is available.
+  (when (< emacs-major-version 31)
+    (with-eval-after-load 'compat
+      (my/ensure-compat-31)))
 
   (use-package marginalia
     :init
