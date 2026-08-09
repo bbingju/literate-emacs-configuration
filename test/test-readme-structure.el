@@ -11,6 +11,8 @@
 
 (require 'test-helper)
 
+(defvar my/flutter-bin-dir nil)
+
 (defun test-readme-eval-defun (name)
   "Find and evaluate the defun named NAME in README.org."
   (catch 'found
@@ -257,6 +259,55 @@ Blocks under COMMENT headings are excluded."
        (string-match-p "(file-exists-p redmine-org-file)" content))
       (should
        (string-match-p "(list redmine-org-file)" content)))))
+
+(ert-deftest test-readme/remote-development-avoids-local-only-settings ()
+  "Remote development does not inherit costly or local-only settings."
+  (with-temp-buffer
+    (insert-file-contents test-readme-file)
+    (let ((content (buffer-string)))
+      (dolist (expected
+               '("auto-revert-check-vc-info nil"
+                 "auto-revert-remote-files nil"
+                 "global-auto-revert-non-file-buffers nil"
+                 "diff-hl-disable-on-remote t"
+                 "tramp-own-remote-path"
+                 "my/eglot-jdtls-contact"
+                 "my/eglot-dart-contact"
+                 "my/eglot-rust-analyzer-contact"))
+        (should (string-match-p (regexp-quote expected) content)))
+      (should-not
+       (string-match-p (regexp-quote "(setq auto-revert-interval 1") content))
+      (should-not
+       (string-match-p (regexp-quote "tramp-remote-shell-executable") content)))))
+
+(ert-deftest test-readme/eglot-contacts-select-the-project-host ()
+  "Eglot contacts use command names remotely and local paths locally."
+  (dolist (function '(my/eglot-remote-project-p
+                      my/eglot-jdtls-contact
+                      my/eglot-dart-contact
+                      my/eglot-rust-analyzer-contact))
+    (test-readme-eval-defun function))
+  (cl-letf (((symbol-function 'project-root) #'identity)
+            ((symbol-function 'file-remote-p)
+             (lambda (file &rest _args)
+               (and (string-prefix-p "/ssh:" file) "/ssh:host:")))
+            ((symbol-function 'my/find-jdtls-installation)
+             (lambda () '("java" "-jar" "/local/jdtls.jar")))
+            ((symbol-function 'executable-find)
+             (lambda (&rest _args) "/local/bin/rust-analyzer")))
+    (let ((remote "/ssh:host:/repo/")
+          (local "/local/repo/")
+          (my/flutter-bin-dir "/local/flutter/bin"))
+      (should (equal (my/eglot-jdtls-contact nil remote) '("jdtls")))
+      (should (equal (my/eglot-jdtls-contact nil local)
+                     '("java" "-jar" "/local/jdtls.jar")))
+      (should (equal (car (my/eglot-dart-contact nil remote)) "dart"))
+      (should (equal (car (my/eglot-dart-contact nil local))
+                     "/local/flutter/bin/dart"))
+      (should (equal (car (my/eglot-rust-analyzer-contact nil remote))
+                     "rust-analyzer"))
+      (should (equal (car (my/eglot-rust-analyzer-contact nil local))
+                     "/local/bin/rust-analyzer")))))
 
 (ert-deftest test-readme/compat-31-missing-installs-legacy-fallback ()
   "A missing compat-31 library leaves old Emacs time formatting usable."

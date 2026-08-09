@@ -169,17 +169,20 @@ MacOS 일 경우, 파일시스템에서 한글이 제대로 나오게 하기 위
 #+end_src
 
 ** Automatically refreshes the buffer for changes outside of emacs
-Auto refreshes every 3 seconds.
+로컬 파일은 3초마다 외부 변경을 확인한다. 원격 파일과 VC 상태는 주기적으로
+조회하지 않는다. TRAMP 연결에서 타이머 기반 조회가 다른 원격 작업과 경합하는
+것을 피하기 위해서다.
 
 #+begin_src emacs-lisp
   (use-package autorevert
     :ensure nil
     :config
-    (global-auto-revert-mode +1)
     (setq auto-revert-interval 3
-          auto-revert-check-vc-info t
-          auto-revert-non-file-buffers t
-          auto-revert-verbose nil))
+          auto-revert-check-vc-info nil
+          auto-revert-remote-files nil
+          global-auto-revert-non-file-buffers nil
+          auto-revert-verbose nil)
+    (global-auto-revert-mode +1))
 #+end_src
 
 ** Load a custom file
@@ -275,33 +278,15 @@ minibuffer completion이 작동 중일 때 남은 영역에 추가 정보를 표
 
 ** Tramp
 #+begin_src elisp
-  ;; Set default coding system for tramp
+  ;; The inline ssh method is a good default for source files.  Keep
+  ;; TRAMP's platform-specific shell and transfer-command defaults.
   (setq tramp-default-method "ssh")
-  (setq tramp-encoding-shell "/bin/sh")
-  (setq tramp-terminal-type "dumb")
 
-  ;; Force UTF-8 encoding
-  (setq tramp-remote-coding-commands
-        '((b64 "base64" "base64 -d -i")
-          (b64 "base64" "base64 -d")
-          (b64 "openssl enc -base64" "openssl enc -d -base64")
-          (b64 "mimencode -b" "mimencode -u -b")
-          (b64 "mmencode -b" "mmencode -u -b")
-          (b64 "recode data..base64" "recode base64..data")
-          (b64 "uuencode xxx" "uudecode -o /dev/stdout")
-          (b64 "uuencode xxx" "uudecode -o -")
-          (b64 "uuencode xxx" "uudecode -p")
-          (b64 "uuencode xxx" "uudecode")
-          (uu  "uuencode xxx" "uudecode -o /dev/stdout")
-          (uu  "uuencode xxx" "uudecode -o -")
-          (uu  "uuencode xxx" "uudecode -p")
-          (uu  "uuencode xxx" "uudecode")
-          (pack "perl -e 'binmode STDIN; binmode STDOUT; print pack(q{u*}, join q{}, <>)'"
-                "perl -e 'binmode STDIN; binmode STDOUT; print unpack(q{u*}, join q{}, <>)'")))
-
-  ;; Set proper locale
-  (setq tramp-remote-shell-executable "/bin/bash")
-  ;; (add-to-list 'tramp-remote-path "/usr/local/bin")
+  ;; Include the PATH exported by the remote login profile so that
+  ;; development tools installed in ~/.local/bin, ~/.cargo/bin, etc.
+  ;; can be found by Eglot, Flycheck, Projectile, and Magit.
+  (with-eval-after-load 'tramp
+    (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
 #+end_src
 
 ** Others
@@ -768,10 +753,17 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
 
 ** Eglot
 
+TRAMP 프로젝트에서는 language server를 원격 호스트에서 실행한다. 로컬에서
+찾은 절대 경로를 원격에 전달하지 않고, 원격의 ~PATH~ 에서 실행 파일을 찾는다.
+
 #+begin_src elisp
-  ;; Helper function to find jdtls installation
+  (defun my/eglot-remote-project-p (project)
+    "Return non-nil when PROJECT is accessed through TRAMP."
+    (file-remote-p (project-root project)))
+
+  ;; Helper function to find a local jdtls installation.
   (defun my/find-jdtls-installation ()
-    "Find jdtls installation directory and return configuration list.
+    "Find a local jdtls installation and return its configuration.
   Searches in common locations: ~/.vscode/extensions, ~/.local/share/nvim/mason/packages/jdtls"
     (let* ((vscode-ext-dir (expand-file-name "~/.vscode/extensions"))
            (mason-jdtls-dir (expand-file-name "~/.local/share/nvim/mason/packages/jdtls"))
@@ -809,24 +801,30 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
                   "-configuration" config-dir
                   "-data" workspace-dir))))))
 
+  (defun my/eglot-jdtls-contact (_interactive project)
+    "Return a jdtls contact suitable for PROJECT.
+Use the remote host's jdtls wrapper for TRAMP projects and local
+absolute paths only for local projects."
+    (if (my/eglot-remote-project-p project)
+        '("jdtls")
+      (or (my/find-jdtls-installation) '("jdtls"))))
+
   (use-package eglot
     :config
-    (let ((jdtls-config (my/find-jdtls-installation)))
-      (dolist (servers `(((sh-mode bash-ts-mode) . ("bash-language-server" "start"))
-                         ((python-mode python-ts-mode) . ("jedi-language-server"))
-                         ((cmake-mode cmake-ts-mode) . ("cmake-language-server"))
-                         ;; --query-driver whitelists cross toolchains (e.g. Zephyr's
-                         ;; arm-zephyr-eabi-gcc) so clangd extracts their builtin/system
-                         ;; include paths; --background-index speeds up xref/references.
-                         ((c-mode c-ts-mode)
-                          . ("clangd" "--background-index" "--header-insertion=never"
-                             "--query-driver=**/*-gcc,**/*-g++,/usr/bin/*gcc"))
-                         ((c++-mode c++-ts-mode)
-                          . ("clangd" "--background-index" "--header-insertion=never"
-                             "--query-driver=**/*-gcc,**/*-g++,/usr/bin/*gcc"))
-                         ,@(when jdtls-config
-                             `(((java-mode) . ,jdtls-config)))))
-        (add-to-list 'eglot-server-programs servers)))
+    (dolist (servers '(((sh-mode bash-ts-mode) . ("bash-language-server" "start"))
+                       ((python-mode python-ts-mode) . ("jedi-language-server"))
+                       ((cmake-mode cmake-ts-mode) . ("cmake-language-server"))
+                       ;; --query-driver whitelists cross toolchains (e.g. Zephyr's
+                       ;; arm-zephyr-eabi-gcc) so clangd extracts their builtin/system
+                       ;; include paths; --background-index speeds up xref/references.
+                       ((c-mode c-ts-mode)
+                        . ("clangd" "--background-index" "--header-insertion=never"
+                           "--query-driver=**/*-gcc,**/*-g++,/usr/bin/*gcc"))
+                       ((c++-mode c++-ts-mode)
+                        . ("clangd" "--background-index" "--header-insertion=never"
+                           "--query-driver=**/*-gcc,**/*-g++,/usr/bin/*gcc"))
+                       ((java-mode) . my/eglot-jdtls-contact)))
+      (add-to-list 'eglot-server-programs servers))
     ;; In TUI frames eglot's visual extras break line layout. Inlay-hint
     ;; face :height is ignored, so hints render at full cell width. The
     ;; code-action indicator glyph (a wide-char like the lightning bolt)
@@ -834,6 +832,10 @@ ielm에서 ~(mapc #'treesit-install-language-grammar (mapcar #'car treesit-langu
     ;; corrupting column math. Disable both in non-graphic frames.
     (add-hook 'eglot-managed-mode-hook
               (lambda ()
+                ;; Eglot provides diagnostics through Flymake.  Avoid a
+                ;; second checker process, especially over TRAMP.
+                (when (bound-and-true-p flycheck-mode)
+                  (flycheck-mode -1))
                 (unless (display-graphic-p)
                   (eglot-inlay-hints-mode -1)
                   (when (boundp 'eglot-code-action-indications)
@@ -986,7 +988,10 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
 #+begin_src emacs-lisp
   (use-package diff-hl
     :ensure t
-    :init (global-diff-hl-mode)
+    :init
+    ;; Remote VC queries are synchronous and can block other TRAMP work.
+    (setq diff-hl-disable-on-remote t)
+    (global-diff-hl-mode +1)
     :config
     (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh))
 #+end_src
@@ -997,7 +1002,11 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
     :hook ((after-init . global-flycheck-mode)
            (org-mode . (lambda () (flycheck-mode -1))))
     :config
-    (setq flycheck-check-syntax-automatically '(save idle-change mode-enabled)))
+    (setq flycheck-check-syntax-automatically '(save idle-change mode-enabled))
+    ;; Eglot is the primary checker for remote development.  Keep manual
+    ;; Flycheck available, but do not spawn checkers automatically over TRAMP.
+    (when (boundp 'flycheck-check-syntax-automatically-remote)
+      (setq flycheck-check-syntax-automatically-remote nil)))
 #+end_src
 
 ** Yasnippet
@@ -1056,7 +1065,7 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
 
 ** Dart
 
-Flutter SDK 경로는 ~FLUTTER_ROOT~ 환경변수로 지정하거나, 아래 후보 경로 중 존재하는 첫 번째 위치를 자동으로 사용한다. SDK가 발견되면 ~exec-path~ 와 ~PATH~ 에 추가하여 ~flutter~/~dart~ 명령을 Emacs 서브프로세스에서도 사용할 수 있게 하고, eglot의 dart language server도 해당 SDK의 ~dart~ 를 가리키도록 고정한다.
+Flutter SDK 경로는 ~FLUTTER_ROOT~ 환경변수로 지정하거나, 아래 후보 경로 중 존재하는 첫 번째 위치를 자동으로 사용한다. 로컬 프로젝트에서는 발견한 SDK의 ~dart~ 를 사용하고, TRAMP 프로젝트에서는 원격 ~PATH~ 의 ~dart~ 를 사용한다.
 
 #+begin_src elisp
   (defcustom my/flutter-bin-dir
@@ -1077,20 +1086,26 @@ Flutter SDK 경로는 ~FLUTTER_ROOT~ 환경변수로 지정하거나, 아래 후
     (add-to-list 'exec-path my/flutter-bin-dir)
     (setenv "PATH" (concat my/flutter-bin-dir path-separator (getenv "PATH"))))
 
+  (defun my/eglot-dart-contact (_interactive project)
+    "Return a Dart language-server contact suitable for PROJECT."
+    (list (if (my/eglot-remote-project-p project)
+              "dart"
+            (if my/flutter-bin-dir
+                (expand-file-name "dart" my/flutter-bin-dir)
+              "dart"))
+          "language-server"
+          "--client-id" "emacs.eglot-dart"))
+
   (use-package dart-ts-mode
     :vc (:url "https://github.com/50ways2sayhard/dart-ts-mode" :rev :newest)
     :mode ("\\.dart\\'" . dart-ts-mode)
     :hook (dart-ts-mode . eglot-ensure)
     :init
     (with-eval-after-load 'eglot
-      ;; Pin the language server to the Flutter-bundled Dart, avoiding any
-      ;; conflict with a system-wide Dart SDK that might also be on PATH.
-      (when my/flutter-bin-dir
-        (add-to-list 'eglot-server-programs
-                     `(dart-ts-mode
-                       . (,(expand-file-name "dart" my/flutter-bin-dir)
-                          "language-server"
-                          "--client-id" "emacs.eglot-dart"))))))
+      ;; Use the Flutter-bundled Dart locally, but resolve `dart' from
+      ;; the remote PATH when the project is accessed through TRAMP.
+      (add-to-list 'eglot-server-programs
+                   '(dart-ts-mode . my/eglot-dart-contact))))
 #+end_src
 
 ** Python
@@ -1119,22 +1134,28 @@ eglot 기반의 Rust 개발 환경을 설정한다.
   (with-eval-after-load 'flycheck
     (setq-default flycheck-disabled-checkers '(rust-cargo rust rust-clippy)))
 
-  ;; Enhanced rust-analyzer configuration with eglot
+  (defun my/eglot-rust-analyzer-contact (_interactive project)
+    "Return a rust-analyzer contact suitable for PROJECT."
+    (list (if (my/eglot-remote-project-p project)
+              "rust-analyzer"
+            (or (executable-find "rust-analyzer") "rust-analyzer"))
+          :initializationOptions
+          '(:check (:command "clippy")
+            :cargo (:buildScripts (:enable t))
+            :procMacro (:enable t)
+            :rustfmt (:extraArgs ["--edition" "2024"])
+            :inlayHints (:bindingModeHints (:enable t)
+                         :chainingHints (:enable t)
+                         :closingBraceHints (:enable t)
+                         :lifetimeElisionHints (:enable t)
+                         :parameterHints (:enable t)
+                         :typeHints (:enable t)))))
+
+  ;; Enhanced rust-analyzer configuration with Eglot
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs
-                 `((rust-ts-mode rust-mode) .
-                   (,(or (executable-find "rust-analyzer") "rust-analyzer")
-                    :initializationOptions
-                    (:check (:command "clippy")
-                            :cargo (:buildScripts (:enable t))
-                            :procMacro (:enable t)
-                            :rustfmt (:extraArgs ["--edition" "2024"])
-                            :inlayHints (:bindingModeHints (:enable t)
-                                                           :chainingHints (:enable t)
-                                                           :closingBraceHints (:enable t)
-                                                           :lifetimeElisionHints (:enable t)
-                                                           :parameterHints (:enable t)
-                                                           :typeHints (:enable t)))))))
+                 '((rust-ts-mode rust-mode)
+                   . my/eglot-rust-analyzer-contact)))
 
   ;; Rust mode configuration
   (use-package rust-mode
@@ -1148,8 +1169,9 @@ eglot 기반의 Rust 개발 환경을 설정한다.
   ;; Enhanced key bindings for Rust
   (defun my/rust-mode-setup ()
     "Custom setup for Rust modes."
-    ;; eglot 연결 확인 후 활성화
-    (when (executable-find "rust-analyzer")
+    ;; Resolve rust-analyzer on the host that owns the current buffer.
+    (when (executable-find "rust-analyzer"
+                           (file-remote-p default-directory))
       (eglot-ensure))
     ;; 키바인딩 설정 (cargo-minor-mode 없이)
     (local-set-key (kbd "C-c C-f") #'rust-format-buffer)
