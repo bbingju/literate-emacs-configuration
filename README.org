@@ -493,6 +493,7 @@ Hide =tool-bar= and =scroll-bar=.
   (setq org-agenda-files (list (my/org-expand "inbox.org")
                                (my/org-expand "work.org")
                                (my/org-expand "projects.org")
+                               (my/org-expand "issues.org")
                                (my/org-expand "repeaters.org")))
 
   (setq org-refile-targets
@@ -527,6 +528,9 @@ Hide =tool-bar= and =scroll-bar=.
                   ((org-agenda-overriding-header "Unscheduled projects tasks")
                    (org-agenda-files (list ,(my/org-expand "projects.org")))
                    (org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))))
+            (alltodo ""
+                     ((org-agenda-overriding-header "Issues")
+                      (org-agenda-files (list ,(my/org-expand "issues.org")))))
             (alltodo ""
                   ((org-agenda-overriding-header "Redmine 할당 이슈")
                    (org-agenda-files
