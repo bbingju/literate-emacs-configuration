@@ -453,6 +453,11 @@ Hide =tool-bar= and =scroll-bar=.
 
 * Org Mode
 
+Agenda는 업무와 개인 프로젝트를 분리한다. =C-c a SPC= 는 기존 업무 파일과
+Redmine 이슈를 표시하고, =C-c a p= 는 =personal-projects.org= 의 일정과 미완료
+작업만 표시한다. 개인 파일에서 =C-c [= 를 실행하면 전역 업무 목록에 섞일 수
+있으므로 별도로 추가하지 않는다.
+
 #+begin_src emacs-lisp
   (use-package ob-http)
   (use-package ob-rust)
@@ -490,11 +495,24 @@ Hide =tool-bar= and =scroll-bar=.
                                                            (http . t)
                                                            (rust . t)))
 
-  (setq org-agenda-files (list (my/org-expand "inbox.org")
-                               (my/org-expand "work.org")
-                               (my/org-expand "projects.org")
-                               (my/org-expand "issues.org")
-                               (my/org-expand "repeaters.org")))
+  (defvar my/org-work-agenda-files nil
+    "Org files shown in the work agenda.")
+
+  (defvar my/org-personal-agenda-files nil
+    "Org files shown in the personal agenda.")
+
+  (setq my/org-work-agenda-files
+        (list (my/org-expand "inbox.org")
+              (my/org-expand "work.org")
+              (my/org-expand "projects.org")
+              (my/org-expand "issues.org")
+              (my/org-expand "repeaters.org"))
+        my/org-personal-agenda-files
+        (list (my/org-expand "personal-projects.org")))
+
+  ;; Keep the default agenda work-only.  Personal files are bound only
+  ;; while running the dedicated custom agenda below.
+  (setq org-agenda-files (copy-sequence my/org-work-agenda-files))
 
   (setq org-refile-targets
         `((,(my/org-expand "todo.org") :maxlevel . 3)
@@ -517,7 +535,7 @@ Hide =tool-bar= and =scroll-bar=.
            "* %?\n  %T" :prepend t)))
 
   (setq org-agenda-custom-commands
-        `((" " "Agenda"
+        `((" " "Work agenda"
            ((agenda ""
                     ((org-agenda-span 'day)))
             (todo "TODO"
@@ -535,7 +553,19 @@ Hide =tool-bar= and =scroll-bar=.
                   ((org-agenda-overriding-header "Redmine 할당 이슈")
                    (org-agenda-files
                     (when (file-exists-p redmine-org-file)
-                      (list redmine-org-file)))))))))
+                      (list redmine-org-file)))))))
+          ("p" "Personal agenda"
+           ((agenda ""
+                    ((org-agenda-overriding-header "Personal schedule")
+                     (org-agenda-files my/org-personal-agenda-files)
+                     (org-agenda-span 'day)))
+            (todo "TODO"
+                  ((org-agenda-overriding-header
+                    "Unscheduled personal tasks")
+                   (org-agenda-files my/org-personal-agenda-files)
+                   (org-agenda-skip-function
+                    '(org-agenda-skip-entry-if
+                      'scheduled 'deadline))))))))
 
   (global-set-key (kbd "C-c c") #'org-capture)
   (global-set-key (kbd "C-c a") #'org-agenda)

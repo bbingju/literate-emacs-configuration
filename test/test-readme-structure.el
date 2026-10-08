@@ -260,6 +260,20 @@ Blocks under COMMENT headings are excluded."
       (should
        (string-match-p "(list redmine-org-file)" content)))))
 
+(ert-deftest test-readme/agenda-separates-work-and-personal-files ()
+  "Work and personal agenda commands use separate file lists."
+  (with-temp-buffer
+    (insert-file-contents test-readme-file)
+    (let ((content (buffer-string)))
+      (dolist (expected
+               '("my/org-work-agenda-files"
+                 "my/org-personal-agenda-files"
+                 "(my/org-expand \"personal-projects.org\")"
+                 "(setq org-agenda-files (copy-sequence my/org-work-agenda-files))"
+                 "(\"p\" \"Personal agenda\""
+                 "(org-agenda-files my/org-personal-agenda-files)"))
+        (should (string-match-p (regexp-quote expected) content))))))
+
 (ert-deftest test-readme/remote-development-avoids-local-only-settings ()
   "Remote development does not inherit costly or local-only settings."
   (with-temp-buffer
