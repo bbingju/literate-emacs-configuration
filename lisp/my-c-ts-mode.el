@@ -19,26 +19,17 @@
 ;;   Results are shown in an xref buffer; invoke recursively on entries to
 ;;   walk further up/down the call graph.
 ;;
-;; NOTE:
-;;   The `clang-format` ELPA package binds keys in `c-mode-base-map`, which
-;;   lives in the classic CC-mode library.  When using only `c-ts-mode`, CC-mode
-;;   isn’t loaded automatically, leading to the error
-;;     "Symbol’s value as variable is void: c-mode-base-map".
-;;   We pre-load CC-mode here to provide that map and silence the error.
-;;
-;;   Put `(require 'my-c-ts-mode)` in your init to enable.
+;; Add `my/c-ts-mode-setup' to the C/C++ tree-sitter mode hooks to enable it.
 
 ;;; Code:
 
-(require 'cc-mode)                      ;; provide c-mode-base-map for clang-format
-(require 'subr-x)                       ;; for when-let etc.
 (require 'cl-lib)                       ;; for cl-incf
+(require 'seq)
 (require 'xref)                         ;; for call-hierarchy result display
 (require 'eglot)                        ;; LSP range conversion and xref helpers
-(require 'clang-format nil t)           ;; soft-require, only if installed
 
 (defgroup my/c-ts nil
-  "Customisations for c-ts-mode."
+  "Customisations for `c-ts-mode'."
   :group 'languages)
 
 (defcustom my/c-ts-mode-format-on-save nil
@@ -48,9 +39,9 @@
 
 (defun my/clang-format-available-p ()
   "Return non-nil if clang-format can be used in this buffer."
-  (and (featurep 'clang-format)
-       (executable-find "clang-format")
-       (locate-dominating-file default-directory ".clang-format")))
+  (and (executable-find "clang-format")
+       (locate-dominating-file default-directory ".clang-format")
+       (require 'clang-format nil t)))
 
 (defun my/clang-format-buffer-smart ()
   "Run clang-format if available, else fall back to `indent-for-tab-command'."
@@ -64,7 +55,7 @@
       (indent-for-tab-command))))
 
 (defun my/clang-format-region-smart (start end)
-  "Indent region using clang-format / eglot when possible.
+  "Indent the region between START and END using clang-format or Eglot.
 Used as `indent-region-function' so that \\[indent-region]
 respects `.clang-format' in eglot-managed C/C++ buffers."
   (cond
@@ -78,11 +69,27 @@ respects `.clang-format' in eglot-managed C/C++ buffers."
     (let ((indent-region-function nil))
       (indent-region start end)))))
 
+(defun my/c-ts-format-buffer-on-save ()
+  "Format the current C/C++ buffer when a formatter is available.
+Unlike `my/clang-format-buffer-smart', do nothing instead of indenting at point
+when neither clang-format nor an Eglot server is available."
+  (cond
+   ((my/clang-format-available-p)
+    (let ((clang-format-style-option "file"))
+      (clang-format-buffer)))
+   ((and (featurep 'eglot) (eglot-current-server))
+    (eglot-format-buffer))))
+
 (defun my/eglot--call-hierarchy (direction)
   "Show LSP call hierarchy at point in DIRECTION.
 DIRECTION is the symbol `incoming' (callers) or `outgoing' (callees).
 Results are rendered via `xref-show-xrefs', so n/p/RET behave as usual."
-  (let* ((server (eglot--current-server-or-lose))
+  (unless (and (fboundp 'eglot--TextDocumentPositionParams)
+               (fboundp 'eglot--xref-make-match)
+               (macrop 'eglot--collecting-xrefs))
+    (user-error "This Eglot version does not expose compatible call-hierarchy helpers"))
+  (let* ((server (or (eglot-current-server)
+                     (user-error "No Eglot server manages this buffer")))
          (items  (jsonrpc-request
                   server :textDocument/prepareCallHierarchy
                   (eglot--TextDocumentPositionParams))))
@@ -146,9 +153,10 @@ Results are rendered via `xref-show-xrefs', so n/p/RET behave as usual."
   (electric-pair-local-mode 1)
   ;; Bind TAB to smart clang-format/indent.
   (local-set-key (kbd "TAB") #'my/clang-format-buffer-smart)
+  (local-set-key (kbd "C-c C-f") #'my/clang-format-buffer-smart)
   ;; Optional before-save hook.
   (when my/c-ts-mode-format-on-save
-    (add-hook 'before-save-hook #'my/clang-format-buffer-smart nil t))
+    (add-hook 'before-save-hook #'my/c-ts-format-buffer-on-save nil t))
   ;; Additional eglot keybindings for C/C++ (set after eglot connects)
   (add-hook 'eglot-managed-mode-hook
             (lambda ()
@@ -165,14 +173,17 @@ Results are rendered via `xref-show-xrefs', so n/p/RET behave as usual."
                 (local-set-key (kbd "C-c C-h o") #'my/eglot-outgoing-calls)))
             nil t))
 
-(add-hook 'c-ts-mode-hook #'my/c-ts-mode-setup)
-(add-hook 'c++-ts-mode-hook #'my/c-ts-mode-setup)
-
 ;;;###autoload
 (defun my/toggle-c-ts-format-on-save ()
-  "Toggle automatic clang-format on save for C/C++ buffers."
+  "Toggle automatic formatting on save in the current C/C++ buffer."
   (interactive)
-  (setq my/c-ts-mode-format-on-save (not my/c-ts-mode-format-on-save))
+  (unless (derived-mode-p 'c-ts-mode 'c++-ts-mode)
+    (user-error "This command is only available in C/C++ tree-sitter buffers"))
+  (setq-local my/c-ts-mode-format-on-save
+              (not my/c-ts-mode-format-on-save))
+  (if my/c-ts-mode-format-on-save
+      (add-hook 'before-save-hook #'my/c-ts-format-buffer-on-save nil t)
+    (remove-hook 'before-save-hook #'my/c-ts-format-buffer-on-save t))
   (message "clang-format on save %s"
            (if my/c-ts-mode-format-on-save "enabled" "disabled")))
 

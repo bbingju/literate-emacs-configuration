@@ -28,22 +28,23 @@
 
 (ert-deftest test-c-ts/clang-format-all-conditions-met ()
   "Returns non-nil when all three conditions are satisfied."
-  (cl-letf (((symbol-function 'featurep)
-             (lambda (feat) (eq feat 'clang-format)))
-            ((symbol-function 'executable-find)
+  (cl-letf (((symbol-function 'executable-find)
              (lambda (_cmd) "/usr/bin/clang-format"))
             ((symbol-function 'locate-dominating-file)
-             (lambda (_dir _file) "/project/")))
+             (lambda (_dir _file) "/project/"))
+            ((symbol-function 'require)
+             (lambda (feature &rest _)
+               (eq feature 'clang-format))))
     (should (my/clang-format-available-p))))
 
 (ert-deftest test-c-ts/clang-format-no-feature ()
-  "Returns nil when clang-format feature is not loaded."
-  (cl-letf (((symbol-function 'featurep)
-             (lambda (_feat) nil))
-            ((symbol-function 'executable-find)
+  "Returns nil when the clang-format library cannot be loaded."
+  (cl-letf (((symbol-function 'executable-find)
              (lambda (_cmd) "/usr/bin/clang-format"))
             ((symbol-function 'locate-dominating-file)
-             (lambda (_dir _file) "/project/")))
+             (lambda (_dir _file) "/project/"))
+            ((symbol-function 'require)
+             (lambda (&rest _) nil)))
     (should-not (my/clang-format-available-p))))
 
 (ert-deftest test-c-ts/clang-format-no-executable ()
@@ -71,23 +72,33 @@
 ;; ============================================================
 
 (ert-deftest test-c-ts/toggle-nil-to-t ()
-  "Toggling from nil sets variable to t."
-  (let ((my/c-ts-mode-format-on-save nil))
+  "Toggling from nil enables the buffer-local save hook."
+  (with-temp-buffer
+    (setq major-mode 'c-ts-mode)
+    (setq-local my/c-ts-mode-format-on-save nil)
     (my/toggle-c-ts-format-on-save)
-    (should (eq my/c-ts-mode-format-on-save t))))
+    (should my/c-ts-mode-format-on-save)
+    (should (memq #'my/c-ts-format-buffer-on-save before-save-hook))))
 
 (ert-deftest test-c-ts/toggle-t-to-nil ()
-  "Toggling from t sets variable to nil."
-  (let ((my/c-ts-mode-format-on-save t))
+  "Toggling from t removes the buffer-local save hook."
+  (with-temp-buffer
+    (setq major-mode 'c++-ts-mode
+          my/c-ts-mode-format-on-save t)
+    (add-hook 'before-save-hook #'my/c-ts-format-buffer-on-save nil t)
     (my/toggle-c-ts-format-on-save)
-    (should (eq my/c-ts-mode-format-on-save nil))))
+    (should-not my/c-ts-mode-format-on-save)
+    (should-not (memq #'my/c-ts-format-buffer-on-save before-save-hook))))
 
 (ert-deftest test-c-ts/toggle-round-trip ()
-  "Double toggle returns to original value."
-  (let ((my/c-ts-mode-format-on-save nil))
+  "Double toggle returns the variable and save hook to their original state."
+  (with-temp-buffer
+    (setq major-mode 'c-ts-mode)
+    (setq-local my/c-ts-mode-format-on-save nil)
     (my/toggle-c-ts-format-on-save)
     (my/toggle-c-ts-format-on-save)
-    (should (eq my/c-ts-mode-format-on-save nil))))
+    (should-not my/c-ts-mode-format-on-save)
+    (should-not (memq #'my/c-ts-format-buffer-on-save before-save-hook))))
 
 ;; ============================================================
 ;; Tests: my/clang-format-parse-config
@@ -146,7 +157,7 @@
                  (list :to fallback-target :fromRanges [])))
          converted
          shown)
-    (cl-letf (((symbol-function 'eglot--current-server-or-lose)
+    (cl-letf (((symbol-function 'eglot-current-server)
                (lambda () 'test-server))
               ((symbol-function 'eglot--TextDocumentPositionParams)
                (lambda () '(:position t)))

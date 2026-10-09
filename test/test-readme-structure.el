@@ -110,6 +110,39 @@
                    (ert-fail (format "Syntax error in block at line %d: %s"
                                      line err))))))))))))
 
+(ert-deftest test-readme/source-blocks-macroexpand ()
+  "Macroexpand every active elisp block, including use-package declarations."
+  (require 'use-package)
+  (require 'macroexp)
+  (with-temp-buffer
+    (insert-file-contents test-readme-file)
+    (org-mode)
+    (org-element-map (org-element-parse-buffer) 'src-block
+      (lambda (blk)
+        (when (member (org-element-property :language blk)
+                      '("emacs-lisp" "elisp"))
+          (let ((parent (org-element-property :parent blk))
+                (in-comment nil)
+                (line (line-number-at-pos
+                       (org-element-property :begin blk))))
+            (while parent
+              (when (and (eq (org-element-type parent) 'headline)
+                         (org-element-property :commentedp parent))
+                (setq in-comment t))
+              (setq parent (org-element-property :parent parent)))
+            (unless in-comment
+              (with-temp-buffer
+                (insert (org-element-property :value blk))
+                (goto-char (point-min))
+                (condition-case err
+                    (while t
+                      (macroexpand-all (read (current-buffer))))
+                  (end-of-file nil)
+                  (error
+                   (ert-fail
+                    (format "Macroexpansion failed near README.org:%d: %s"
+                            line err))))))))))))
+
 (ert-deftest test-readme/no-broken-use-package ()
   "use-package declarations have a valid package name."
   (with-temp-buffer
@@ -136,6 +169,59 @@
       (let ((content (buffer-string)))
         (should (string-match-p "org-babel-load-file" content))
         (should (string-match-p "README.org" content))))))
+
+(ert-deftest test-readme/init-defines-warning-options-before-updating-them ()
+  "init.el defines warning options and inhibits startup warning queuing."
+  (let ((init-file (expand-file-name "init.el" test-project-root)))
+    (with-temp-buffer
+      (insert-file-contents init-file)
+      (let ((require-pos (progn
+                           (goto-char (point-min))
+                           (search-forward "(require 'warnings)" nil t)))
+            (update-pos (progn
+                          (goto-char (point-min))
+                          (search-forward "(add-to-list 'warning-suppress-log-types"
+                                          nil t)))
+            (inhibit-pos (progn
+                           (goto-char (point-min))
+                           (search-forward "(let ((warning-inhibit-types"
+                                           nil t)))
+            (org-pos (progn
+                       (goto-char (point-min))
+                       (search-forward "(require 'org)" nil t))))
+        (should require-pos)
+        (should update-pos)
+        (should inhibit-pos)
+        (should org-pos)
+        (should (< require-pos update-pos inhibit-pos org-pos))))))
+
+(ert-deftest test-readme/startup-warning-inhibition-prevents-delay ()
+  "The startup inhibition rule prevents lexical warnings from being queued."
+  (require 'warnings)
+  (let ((after-init-time nil)
+        (noninteractive nil)
+        (delayed-warnings-list nil)
+        (warning-inhibit-types '((files missing-lexbind-cookie))))
+    (display-warning
+     '(files missing-lexbind-cookie "/tmp/third-party.el")
+     "Suppression probe")
+    (should-not delayed-warnings-list)))
+
+(ert-deftest test-readme/custom-file-preserves-warning-suppression ()
+  "README.org restores the general warning rule after loading Custom."
+  (with-temp-buffer
+    (insert-file-contents test-readme-file)
+    (let ((load-pos (progn
+                      (goto-char (point-min))
+                      (search-forward "(load custom-file)" nil t)))
+          (update-pos (progn
+                        (goto-char (point-min))
+                        (search-forward
+                         "(add-to-list 'warning-suppress-log-types '(files missing-lexbind-cookie))"
+                         nil t))))
+      (should load-pos)
+      (should update-pos)
+      (should (< load-pos update-pos)))))
 
 (ert-deftest test-readme/platform-macros ()
   "Platform macros are defined in source blocks."
@@ -249,7 +335,7 @@ Blocks under COMMENT headings are excluded."
                          line))))))))))
 
 (ert-deftest test-readme/redmine-agenda-uses-custom-file ()
-  "Redmine agenda configuration uses the module's customizable file path."
+  "Redmine agenda uses its custom file and hides completed planning items."
   (with-temp-buffer
     (insert-file-contents test-readme-file)
     (let ((content (buffer-string)))
@@ -258,7 +344,11 @@ Blocks under COMMENT headings are excluded."
       (should
        (string-match-p "(file-exists-p redmine-org-file)" content))
       (should
-       (string-match-p "(list redmine-org-file)" content)))))
+       (string-match-p "(list redmine-org-file)" content))
+      (dolist (setting '("org-agenda-skip-deadline-if-done t"
+                         "org-agenda-skip-scheduled-if-done t"
+                         "org-agenda-skip-timestamp-if-done t"))
+        (should (string-match-p setting content))))))
 
 (ert-deftest test-readme/agenda-separates-work-and-personal-files ()
   "Work and personal agenda commands use separate file lists."
@@ -322,6 +412,14 @@ Blocks under COMMENT headings are excluded."
                      "rust-analyzer"))
       (should (equal (car (my/eglot-rust-analyzer-contact nil local))
                      "/local/bin/rust-analyzer")))))
+
+(ert-deftest test-readme/rust-format-hook-waits-for-eglot ()
+  "Rust save formatting is installed by eglot-managed-mode-hook."
+  (test-readme-eval-defun 'my/rust-eglot-managed-setup)
+  (with-temp-buffer
+    (setq major-mode 'rust-ts-mode)
+    (my/rust-eglot-managed-setup)
+    (should (memq #'my/rust-format-buffer-if-managed before-save-hook))))
 
 (ert-deftest test-readme/compat-31-missing-installs-legacy-fallback ()
   "A missing compat-31 library leaves old Emacs time formatting usable."
