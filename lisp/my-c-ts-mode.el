@@ -5,7 +5,10 @@
 ;;
 ;; Features:
 ;; • Real TAB characters (indent-tabs-mode = t)
-;; • 8-space visual width and indent offset
+;; • 8-space visual width and indent offset by default, automatically
+;;   overridden per-buffer from the project's `.clang-format' (TabWidth,
+;;   IndentWidth, UseTab, ColumnLimit) when one is found upward from
+;;   `default-directory'
 ;; • Smart TAB: if a .clang-format is found in the project and clang-format is
 ;;   available ⇒ run clang-format-buffer, otherwise fallback to normal indent
 ;; • Optional on-save formatting via `my/c-ts-mode-format-on-save` (default: nil)
@@ -136,6 +139,9 @@ Results are rendered via `xref-show-xrefs', so n/p/RET behave as usual."
               c-ts-mode-indent-offset 8
               ;; Make C-M-\ (indent-region) honor .clang-format when available.
               indent-region-function #'my/clang-format-region-smart)
+  ;; Override the defaults above from the project's `.clang-format', if any,
+  ;; so buffers display with the same indentation clang-format would produce.
+  (my/clang-format-sync-buffer-locals)
   ;; Enable electric-pair-mode as recommended for tree-sitter C/C++ modes
   (electric-pair-local-mode 1)
   ;; Bind TAB to smart clang-format/indent.
@@ -216,6 +222,32 @@ returned as the trimmed string."
     ('integer raw)
     ('use-tab (not (equal raw "Never")))
     (_ raw)))
+
+(defun my/clang-format--apply-parsed-to-buffer (parsed)
+  "Set buffer-local Emacs variables in the current buffer from PARSED.
+PARSED is an alist as returned by `my/clang-format-parse-config'."
+  (dolist (entry my/clang-format--dir-locals-mapping)
+    (let* ((cf-key     (nth 0 entry))
+           (emacs-vars (nth 1 entry))
+           (converter  (nth 2 entry))
+           (cell       (assq cf-key parsed)))
+      (when cell
+        (let ((value (my/clang-format--convert-value converter (cdr cell))))
+          (dolist (var emacs-vars)
+            (set (make-local-variable var) value)))))))
+
+(defun my/clang-format-sync-buffer-locals ()
+  "Sync indentation variables in the current buffer from `.clang-format'.
+Searches upward from `default-directory' for a `.clang-format' file and,
+if found, overrides `tab-width', `c-basic-offset',
+`c-ts-mode-indent-offset', `indent-tabs-mode', and `fill-column' in this
+buffer to match its TabWidth/IndentWidth/UseTab/ColumnLimit settings.
+Does nothing (and returns nil) when no `.clang-format' is found.
+`BasedOnStyle' inheritance is not resolved."
+  (when-let* ((root (locate-dominating-file default-directory ".clang-format")))
+    (my/clang-format--apply-parsed-to-buffer
+     (my/clang-format-parse-config (expand-file-name ".clang-format" root)))
+    root))
 
 ;;;###autoload
 (defun my/clang-format-write-dir-locals ()

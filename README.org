@@ -1086,7 +1086,9 @@ Shell 버퍼에서 ANSI 색상 코드와 진행 표시줄이 깨지지 않도록
   ;; Use M-x my/toggle-c-ts-format-on-save to enable/disable it
 #+end_src
 
-`.clang-format` 의 값(TabWidth, IndentWidth, UseTab, ColumnLimit)을 Emacs 변수(tab-width, c-basic-offset, c-ts-mode-indent-offset, indent-tabs-mode, fill-column)로 옮긴 `.dir-locals.el` 을 프로젝트 루트에 생성/병합하려면 =M-x my/clang-format-write-dir-locals=. 기존 `.dir-locals.el` 의 다른 항목은 보존된다. `BasedOnStyle` 상속은 해석하지 않는다.
+`c-ts-mode`/`c++-ts-mode` 버퍼를 열 때마다 `default-directory` 기준으로 상위 디렉터리를 탐색해 `.clang-format` 을 찾고, 그 값(TabWidth, IndentWidth, UseTab, ColumnLimit)을 Emacs 변수(tab-width, c-basic-offset, c-ts-mode-indent-offset, indent-tabs-mode, fill-column)에 자동으로 반영한다. 파일이 없으면 기본값(8-space tab)을 유지한다. `BasedOnStyle` 상속은 해석하지 않는다.
+
+같은 매핑을 `.dir-locals.el` 로 영구히 남기려면 =M-x my/clang-format-write-dir-locals= 로 프로젝트 루트에 생성/병합할 수 있다. 기존 `.dir-locals.el` 의 다른 항목은 보존된다.
 
 *** tree-sitter
 

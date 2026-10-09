@@ -170,5 +170,36 @@
                     (list "fallback" "file:///fallback.c" selection))))
       (should (equal shown converted)))))
 
+;; ============================================================
+;; Tests: my/clang-format-sync-buffer-locals
+;; ============================================================
+
+(ert-deftest test-c-ts/sync-buffer-locals-applies-values ()
+  "Buffer-local variables are set from the nearest `.clang-format'."
+  (let* ((root (file-name-as-directory (make-temp-file "clang-format-dir-" t))))
+    (unwind-protect
+        (progn
+          (with-temp-file (expand-file-name ".clang-format" root)
+            (insert "TabWidth: 4\nIndentWidth: 2\nUseTab: Never\nColumnLimit: 80\n"))
+          (with-temp-buffer
+            (cl-letf (((symbol-function 'locate-dominating-file)
+                       (lambda (_dir _file) root)))
+              (my/clang-format-sync-buffer-locals))
+            (should (equal tab-width 4))
+            (should (equal c-basic-offset 2))
+            (should (equal c-ts-mode-indent-offset 2))
+            (should (equal indent-tabs-mode nil))
+            (should (equal fill-column 80))))
+      (delete-directory root t))))
+
+(ert-deftest test-c-ts/sync-buffer-locals-no-config-file ()
+  "Does nothing and returns nil when no `.clang-format' is found."
+  (with-temp-buffer
+    (cl-letf (((symbol-function 'locate-dominating-file)
+               (lambda (_dir _file) nil)))
+      (let ((tab-width 8))
+        (should-not (my/clang-format-sync-buffer-locals))
+        (should (equal tab-width 8))))))
+
 (provide 'test-c-ts-mode)
 ;;; test-c-ts-mode.el ends here
