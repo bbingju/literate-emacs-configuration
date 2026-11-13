@@ -1409,6 +1409,8 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
 
 HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고, 없으면 CDN의 [[https://github.com/sindresorhus/github-markdown-css][github-markdown-css]]를 쓴다.
 
+브라우저 미리보기(=C-c C-c p=, =C-c B=)에서는 =```mermaid= 코드 블록을 [[https://mermaid.js.org/][Mermaid]] 다이어그램으로 그린다. 문법이 틀린 블록은 오류 메시지와 원문을 대신 보여준다. eww(=C-c P=)는 JavaScript를 실행하지 않아서 코드 블록 그대로 보인다. Mermaid 버전을 올릴 때는 아래 URL과 SRI 해시를 함께 바꾼다.
+
 #+begin_src emacs-lisp
   (defconst my/markdown-github-css-url
     "https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.min.css"
@@ -1419,8 +1421,78 @@ HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고
             ".markdown-body{box-sizing:border-box;min-width:200px;"
             "max-width:980px;margin:0 auto;padding:45px}"
             "@media (max-width:767px){.markdown-body{padding:15px}}"
+            ".mermaid-diagram{margin:0 0 16px;text-align:center}"
+            ".mermaid-diagram pre{text-align:left}"
+            ".mermaid-error{color:#cf222e;text-align:left;white-space:pre-wrap;"
+            "font-family:ui-monospace,monospace;font-size:85%}"
             "</style>")
     "Page layout recommended by github-markdown-css.")
+
+  (defconst my/markdown-mermaid-js-url
+    "https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.min.js"
+    "Pinned Mermaid build loaded by the browser previews.")
+
+  (defconst my/markdown-mermaid-js-integrity
+    "sha384-8xUhuLNMjW/cI2Dacg3DR4WliYznvIg0LVG1stctThKD/YVrJFI9TNCFxft5NYgp"
+    "Subresource Integrity hash of `my/markdown-mermaid-js-url'.")
+
+  (defconst my/markdown-mermaid-js
+    "
+  var mdMermaidCache = {}, mdMermaidSeq = 0;
+  if (window.mermaid) {
+    try {
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark' : 'default'
+      });
+    } catch (e) { console.error(e); }
+  }
+  // Replace each <pre><code class=\"language-mermaid\"> under ROOT with an
+  // SVG.  Rendered SVGs are cached by source so live updates do not flicker.
+  function mdMermaidRender(root) {
+    if (!window.mermaid || !root) return;
+    root.querySelectorAll('pre > code.language-mermaid').forEach(function (code) {
+      var source = code.textContent;
+      var box = document.createElement('div');
+      box.className = 'mermaid-diagram';
+      code.parentNode.replaceWith(box);
+      if (mdMermaidCache[source]) { box.innerHTML = mdMermaidCache[source]; return; }
+      var id = 'md-mermaid-' + (++mdMermaidSeq);
+      mermaid.render(id, source).then(function (result) {
+        mdMermaidCache[source] = result.svg;
+        box.innerHTML = result.svg;
+      }, function (error) {
+        // Mermaid may leave its temporary container behind on errors.
+        var stray = document.getElementById('d' + id);
+        if (stray) stray.remove();
+        var message = document.createElement('div');
+        message.className = 'mermaid-error';
+        message.textContent = 'Mermaid: ' + ((error && error.message) || error);
+        var pre = document.createElement('pre');
+        pre.textContent = source;
+        box.appendChild(message);
+        box.appendChild(pre);
+      });
+    });
+  }
+  "
+    "JavaScript that renders Mermaid code blocks in Markdown previews.")
+
+  (defun my/markdown-mermaid-script-tag ()
+    "Return the <script> tag that loads the pinned Mermaid build."
+    (format "<script src=\"%s\" integrity=\"%s\" crossorigin=\"anonymous\"></script>"
+            my/markdown-mermaid-js-url my/markdown-mermaid-js-integrity))
+
+  (defun my/markdown-xhtml-header-content ()
+    "Return the <head> additions for HTML exported by `markdown-mode'."
+    (concat my/markdown-body-style
+            (my/markdown-mermaid-script-tag)
+            "<script>" my/markdown-mermaid-js
+            "document.addEventListener('DOMContentLoaded', function () {"
+            " mdMermaidRender(document.body); });"
+            "</script>"))
 
   (defun my/markdown-css-paths ()
     "Return the stylesheets for HTML exported by `markdown-mode'.
@@ -1436,7 +1508,7 @@ HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고
     :init
     (setq markdown-command "cmark-gfm -e table -e autolink -e strikethrough -e tasklist")
     (setq markdown-css-paths (my/markdown-css-paths)
-          markdown-xhtml-header-content my/markdown-body-style
+          markdown-xhtml-header-content (my/markdown-xhtml-header-content)
           ;; github-markdown-css only styles elements inside .markdown-body
           markdown-xhtml-body-preamble "<article class=\"markdown-body\">"
           markdown-xhtml-body-epilogue "</article>")
@@ -1478,12 +1550,34 @@ HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고
 
 [[https://github.com/ancane/markdown-preview-mode][markdown-preview-mode]]는 =localhost= 에 HTTP(9000)·websocket(7379) 서버를 띄운다. 그리고 =markdown-command= 로 렌더링한 결과를 브라우저로 계속 보낸다. 다 쓰고 나면 =C-c B= 로 다시 끄고, 서버까지 내리려면 =M-x markdown-preview-cleanup= 을 실행한다.
 
+패키지는 페이지 파일 하나에 마지막으로 켠 버퍼의 UUID를 박아 넣는다. 그래서 여러 버퍼를 동시에 미리보면, 탭을 새로고침할 때 다른 버퍼의 문서가 보일 수 있다. 이를 막기 위해 브라우저 탭은 박힌 UUID 대신 자기 URL의 ~?uuid=~ 로 등록한다. 생성 페이지는 버퍼에 관계없이 같은 내용이므로 파일 하나를 함께 쓴다.
+
 #+begin_src emacs-lisp
   (defun my/markdown-preview-delete-page ()
     "Delete the generated `markdown-preview-mode' page."
     (when (and (boundp 'markdown-preview-file-name)
                (file-name-absolute-p markdown-preview-file-name))
       (ignore-errors (delete-file markdown-preview-file-name))))
+
+  (defconst my/markdown-preview-uuid-js
+    "
+  // Every preview shares one generated page, and the package bakes the UUID
+  // of the last started buffer into it.  Register with the UUID from this
+  // tab's URL instead, so each tab keeps showing its own buffer.
+  (function () {
+    var uuid = new URLSearchParams(location.search).get('uuid');
+    if (!uuid || !window.WebSocket) return;
+    var prefix = 'MDPM-Register-UUID: ';
+    var send = WebSocket.prototype.send;
+    WebSocket.prototype.send = function (data) {
+      if (typeof data === 'string' && data.indexOf(prefix) === 0) {
+        data = prefix + uuid;
+      }
+      return send.call(this, data);
+    };
+  })();
+  "
+    "JavaScript that registers a preview tab with the UUID in its URL.")
 
   (use-package markdown-preview-mode
     :after markdown-mode
@@ -1496,7 +1590,14 @@ HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고
           (make-temp-file "markdown-preview-" nil ".html"))
     (add-hook 'kill-emacs-hook #'my/markdown-preview-delete-page)
     (setq markdown-preview-stylesheets
-          (list my/markdown-github-css-url my/markdown-body-style)))
+          (list my/markdown-github-css-url my/markdown-body-style)
+          ;; Pass a complete tag: the package's (URL . ATTRIBUTES) form
+          ;; signals wrong-type-argument in `markdown-preview--scripts'.
+          markdown-preview-javascript (list (my/markdown-mermaid-script-tag))
+          markdown-preview-script-oninit
+          (concat my/markdown-preview-uuid-js my/markdown-mermaid-js)
+          markdown-preview-script-onupdate
+          "mdMermaidRender(document.getElementById('markdown-body'));"))
 #+end_src
 
 * [[http://jblevins.org/projects/deft/][Deft]]

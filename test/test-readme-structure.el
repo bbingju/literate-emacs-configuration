@@ -14,6 +14,10 @@
 (defvar my/flutter-bin-dir nil)
 (defvar my/markdown-github-css-url nil)
 (defvar markdown-preview-file-name nil)
+(defvar my/markdown-body-style nil)
+(defvar my/markdown-mermaid-js-url nil)
+(defvar my/markdown-mermaid-js-integrity nil)
+(defvar my/markdown-mermaid-js nil)
 
 (defun test-readme-eval-defun (name)
   "Find and evaluate the defun named NAME in README.org."
@@ -479,6 +483,47 @@ Blocks under COMMENT headings are excluded."
           (my/markdown-preview-delete-page)
           (should (file-exists-p markdown-preview-file-name)))
       (delete-directory default-directory t))))
+
+(ert-deftest test-readme/markdown-export-renders-mermaid ()
+  "Exported HTML loads the pinned Mermaid build and renders on page load."
+  (test-readme-eval-defun 'my/markdown-mermaid-script-tag)
+  (test-readme-eval-defun 'my/markdown-xhtml-header-content)
+  (let* ((my/markdown-body-style "<style>body{}</style>")
+         (my/markdown-mermaid-js-url "https://cdn.example/mermaid.min.js")
+         (my/markdown-mermaid-js-integrity "sha384-test")
+         (my/markdown-mermaid-js "function mdMermaidRender(root) {}")
+         (header (my/markdown-xhtml-header-content)))
+    (should (string-prefix-p "<style>body{}</style>" header))
+    (should (string-match-p
+             (regexp-quote
+              (concat "<script src=\"https://cdn.example/mermaid.min.js\""
+                      " integrity=\"sha384-test\" crossorigin=\"anonymous\">"))
+             header))
+    (should (string-match-p "function mdMermaidRender(root) {}" header))
+    (should (string-match-p
+             (regexp-quote "mdMermaidRender(document.body)") header))))
+
+(ert-deftest test-readme/markdown-live-preview-renders-mermaid ()
+  "The live browser preview loads Mermaid and renders after each update."
+  (with-temp-buffer
+    (insert-file-contents test-readme-file)
+    (let ((content (buffer-string)))
+      (dolist (expected
+               '("mermaid@12.2.0/dist/mermaid.min.js"
+                 "markdown-preview-javascript (list (my/markdown-mermaid-script-tag))"
+                 "(concat my/markdown-preview-uuid-js my/markdown-mermaid-js)"
+                 "mdMermaidRender(document.getElementById('markdown-body'));"))
+        (should (string-match-p (regexp-quote expected) content))))))
+
+(ert-deftest test-readme/markdown-preview-tabs-register-own-uuid ()
+  "Preview tabs register with the UUID in their URL, not the shared page's."
+  (with-temp-buffer
+    (insert-file-contents test-readme-file)
+    (let ((content (buffer-string)))
+      (dolist (expected
+               '("new URLSearchParams(location.search).get('uuid')"
+                 "var prefix = 'MDPM-Register-UUID: ';"))
+        (should (string-match-p (regexp-quote expected) content))))))
 
 (provide 'test-readme-structure)
 ;;; test-readme-structure.el ends here
