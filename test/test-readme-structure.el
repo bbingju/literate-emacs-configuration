@@ -12,6 +12,8 @@
 (require 'test-helper)
 
 (defvar my/flutter-bin-dir nil)
+(defvar my/markdown-github-css-url nil)
+(defvar markdown-preview-file-name nil)
 
 (defun test-readme-eval-defun (name)
   "Find and evaluate the defun named NAME in README.org."
@@ -445,6 +447,38 @@ Blocks under COMMENT headings are excluded."
     (should (equal
              (funcall (nth 2 advice) '(1 expanded abbrev))
              '(1)))))
+
+(ert-deftest test-readme/markdown-css-falls-back-to-cdn ()
+  "Markdown HTML uses the local stylesheet when present, otherwise the CDN."
+  (test-readme-eval-defun 'my/markdown-css-paths)
+  (let ((my/markdown-github-css-url "https://cdn.example/github.css")
+        (local-css (expand-file-name "~/.config/markdown/github.css")))
+    (cl-letf (((symbol-function 'file-readable-p)
+               (lambda (file) (equal file local-css))))
+      (should (equal (my/markdown-css-paths) (list local-css))))
+    (cl-letf (((symbol-function 'file-readable-p) #'ignore))
+      (should (equal (my/markdown-css-paths)
+                     '("https://cdn.example/github.css"))))))
+
+(ert-deftest test-readme/markdown-preview-deletes-only-temp-page ()
+  "The exit hook deletes an absolute preview page but not a relative one."
+  (test-readme-eval-defun 'my/markdown-preview-delete-page)
+  (let ((markdown-preview-file-name
+         (make-temp-file "test-markdown-preview-" nil ".html")))
+    (unwind-protect
+        (progn
+          (my/markdown-preview-delete-page)
+          (should-not (file-exists-p markdown-preview-file-name)))
+      (ignore-errors (delete-file markdown-preview-file-name))))
+  (let ((default-directory
+         (file-name-as-directory
+          (make-temp-file "test-markdown-preview-dir-" t))))
+    (unwind-protect
+        (let ((markdown-preview-file-name ".markdown-preview.html"))
+          (write-region "" nil markdown-preview-file-name)
+          (my/markdown-preview-delete-page)
+          (should (file-exists-p markdown-preview-file-name)))
+      (delete-directory default-directory t))))
 
 (provide 'test-readme-structure)
 ;;; test-readme-structure.el ends here

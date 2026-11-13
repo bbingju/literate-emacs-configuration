@@ -1402,13 +1402,44 @@ org-mode structure template에 python을 추가한다.
 
 Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markdown-mode]]를 사용한다. =gfm-mode= 는 같이 포함된 모드로 github flaved markdown을 의미한다.
 
+미리보기 방법은 다음과 같다.
+- =C-c C-c p= : HTML로 변환해서 외부 브라우저로 한 번 띄운다.
+- =C-c P= : Emacs 안의 eww 창에 띄우고 저장할 때마다 갱신한다. eww는 CSS를 거의 적용하지 않는다.
+- =C-c B= : 외부 브라우저에 띄우고 편집하는 동안 계속 갱신한다 (아래 =markdown-preview-mode=).
+
+HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고, 없으면 CDN의 [[https://github.com/sindresorhus/github-markdown-css][github-markdown-css]]를 쓴다.
+
 #+begin_src emacs-lisp
+  (defconst my/markdown-github-css-url
+    "https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.min.css"
+    "Stylesheet used for Markdown HTML when no local stylesheet exists.")
+
+  (defconst my/markdown-body-style
+    (concat "<style>"
+            ".markdown-body{box-sizing:border-box;min-width:200px;"
+            "max-width:980px;margin:0 auto;padding:45px}"
+            "@media (max-width:767px){.markdown-body{padding:15px}}"
+            "</style>")
+    "Page layout recommended by github-markdown-css.")
+
+  (defun my/markdown-css-paths ()
+    "Return the stylesheets for HTML exported by `markdown-mode'.
+  Prefer the local GitHub stylesheet and fall back to the CDN copy."
+    (let ((local-css (expand-file-name "~/.config/markdown/github.css")))
+      (list (if (file-readable-p local-css)
+                local-css
+              my/markdown-github-css-url))))
+
   (use-package markdown-mode
     :mode
     ("README\\.md\\'" . gfm-mode)
     :init
     (setq markdown-command "cmark-gfm -e table -e autolink -e strikethrough -e tasklist")
-    (setq markdown-css-paths (list (expand-file-name "~/.config/markdown/github.css")))
+    (setq markdown-css-paths (my/markdown-css-paths)
+          markdown-xhtml-header-content my/markdown-body-style
+          ;; github-markdown-css only styles elements inside .markdown-body
+          markdown-xhtml-body-preamble "<article class=\"markdown-body\">"
+          markdown-xhtml-body-epilogue "</article>")
     :bind (:map markdown-mode-map
            ;; Preview (C-c p is reserved for projectile; use the default
            ;; `C-c C-c p' for `markdown-preview' instead)
@@ -1441,6 +1472,31 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
             (browse-url (expand-file-name url))
           (apply orig-fun args))))
     (advice-add 'markdown-follow-link-at-point :around #'my/markdown-follow-link-advice))
+#+end_src
+
+** markdown-preview-mode
+
+[[https://github.com/ancane/markdown-preview-mode][markdown-preview-mode]]는 =localhost= 에 HTTP(9000)·websocket(7379) 서버를 띄운다. 그리고 =markdown-command= 로 렌더링한 결과를 브라우저로 계속 보낸다. 다 쓰고 나면 =C-c B= 로 다시 끄고, 서버까지 내리려면 =M-x markdown-preview-cleanup= 을 실행한다.
+
+#+begin_src emacs-lisp
+  (defun my/markdown-preview-delete-page ()
+    "Delete the generated `markdown-preview-mode' page."
+    (when (and (boundp 'markdown-preview-file-name)
+               (file-name-absolute-p markdown-preview-file-name))
+      (ignore-errors (delete-file markdown-preview-file-name))))
+
+  (use-package markdown-preview-mode
+    :after markdown-mode
+    :bind (:map markdown-mode-map
+           ("C-c B" . markdown-preview-mode))
+    :config
+    ;; The package writes its page into the document's directory by default.
+    ;; Use a private temporary file so it never shows up in a project.
+    (setq markdown-preview-file-name
+          (make-temp-file "markdown-preview-" nil ".html"))
+    (add-hook 'kill-emacs-hook #'my/markdown-preview-delete-page)
+    (setq markdown-preview-stylesheets
+          (list my/markdown-github-css-url my/markdown-body-style)))
 #+end_src
 
 * [[http://jblevins.org/projects/deft/][Deft]]
