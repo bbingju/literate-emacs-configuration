@@ -26,6 +26,7 @@
 (defvar my/markdown-preview-uuid-js nil)
 (defvar markdown-preview-stylesheets nil)
 (defvar markdown-preview-script-oninit nil)
+(defvar markdown-preview-script-onupdate nil)
 (defvar markdown-preview--preview-buffers nil)
 
 (defun test-readme-eval-defun (name)
@@ -524,12 +525,9 @@ The directory is bound to `style-dir' and deleted afterwards."
 (ert-deftest test-readme/markdown-apply-style-sets-export ()
   "Applying a style updates the stylesheet and head of exported HTML."
   (test-readme-with-markdown-styles
-    (dolist (name '(my/markdown-mermaid-script-tag
-                    my/markdown-xhtml-header-content my/markdown-apply-style))
+    (dolist (name '(my/markdown-xhtml-header-content my/markdown-apply-style))
       (test-readme-eval-defun name))
     (let ((my/markdown-style "water")
-          (my/markdown-mermaid-js-url "https://cdn.example/mermaid.min.js")
-          (my/markdown-mermaid-js-integrity "sha384-test")
           (my/markdown-mermaid-js "")
           (markdown-css-paths nil)
           (markdown-xhtml-header-content nil))
@@ -600,12 +598,81 @@ The directory is bound to `style-dir' and deleted afterwards."
              "@import 'main.css';\n"))))
       (delete-directory dir t))))
 
+(ert-deftest test-readme/markdown-preview-embeds-quoted-css-paths ()
+  "Quoted CSS URLs may contain spaces, parentheses and the other quote."
+  (dolist (name '(my/markdown-css-resource-types my/markdown-css-reference-regexp
+                  my/markdown-css-data-url my/markdown-css-embed))
+    (test-readme-eval-defun name))
+  (let* ((dir (file-name-as-directory (make-temp-file "test-markdown-css-" t)))
+         (file (expand-file-name "main.css" dir))
+         (data (concat "data:image/svg+xml;base64," (base64-encode-string "SVG" t))))
+    (unwind-protect
+        (progn
+          (dolist (name '("my icon.svg" "my (icon).svg" "my 'icon'.svg"))
+            (write-region "SVG" nil (expand-file-name name dir)))
+          (dolist (reference '("\"my icon.svg\"" "'my icon.svg'"
+                               "\"my (icon).svg\"" "\"my 'icon'.svg\""))
+            (write-region (concat "a{background:url( " reference " )}") nil file)
+            (let ((quote (substring reference 0 1)))
+              (should (equal (my/markdown-css-embed file)
+                             (concat "a{background:url( " quote data quote " )}"))))))
+      (delete-directory dir t))))
+
+(ert-deftest test-readme/markdown-preview-decodes-css-resource-paths ()
+  "Decode URL paths as UTF-8, keeping query delimiters and fragments separate."
+  (dolist (name '(my/markdown-css-resource-types my/markdown-css-reference-regexp
+                  my/markdown-css-data-url my/markdown-css-embed))
+    (test-readme-eval-defun name))
+  (let* ((dir (file-name-as-directory (make-temp-file "test-markdown-css-" t)))
+         (file (expand-file-name "main.css" dir))
+         (data (concat "data:image/svg+xml;base64," (base64-encode-string "SVG" t))))
+    (unwind-protect
+        (progn
+          (dolist (entry '(("my%20icon.svg" . "my icon.svg")
+                           ("%ED%95%9C%EA%B8%80.svg" . "한글.svg")
+                           ("한글%20icon.svg" . "한글 icon.svg")
+                           ("icon%23dark.svg" . "icon#dark.svg")
+                           ("icon+dark.svg" . "icon+dark.svg")))
+            (write-region "SVG" nil (expand-file-name (cdr entry) dir))
+            (write-region (concat "a{background:url(" (car entry) "?v=1#part)}")
+                          nil file)
+            (should (equal (my/markdown-css-embed file)
+                           (concat "a{background:url(" data "#part)}"))))
+          (write-region "h1{color:red}" nil (expand-file-name "my theme.css" dir))
+          (write-region "@import \"my%20theme.css\";" nil file)
+          (should (equal (my/markdown-css-embed file)
+                         (concat "@import \"data:text/css;charset=utf-8;base64,"
+                                 (base64-encode-string "h1{color:red}" t) "\";"))))
+      (delete-directory dir t))))
+
+(ert-deftest test-readme/markdown-preview-preserves-css-strings-and-comments ()
+  "Only CSS references are embedded, not lookalikes in strings or comments."
+  (dolist (name '(my/markdown-css-resource-types my/markdown-css-reference-regexp
+                  my/markdown-css-data-url my/markdown-css-embed))
+    (test-readme-eval-defun name))
+  (let* ((dir (file-name-as-directory (make-temp-file "test-markdown-css-" t)))
+         (file (expand-file-name "main.css" dir))
+         (literal (concat ".label::before{content:\"url(icon.svg)\"}\n"
+                          ".single::before{content:'url(icon.svg)'}\n"
+                          ".escaped::before{content:\"\\\" url(icon.svg)\"}\n"
+                          ".import::before{content:'@import \"theme.css\";'}\n"
+                          "/* url(icon.svg)\n@import \"theme.css\"; */\n")))
+    (unwind-protect
+        (progn
+          (write-region "SVG" nil (expand-file-name "icon.svg" dir))
+          (write-region "h1{color:red}" nil (expand-file-name "theme.css" dir))
+          (write-region (concat literal "a{background:url(icon.svg)}") nil file)
+          (should (equal (my/markdown-css-embed file)
+                         (concat literal "a{background:url(data:image/svg+xml;base64,"
+                                 (base64-encode-string "SVG" t) ")}"))))
+      (delete-directory dir t))))
+
 (ert-deftest test-readme/markdown-preview-keeps-css-escapes ()
   "CSS and JavaScript backslashes survive the preview template expansion."
   (test-readme-with-markdown-styles
     (dolist (name '(my/markdown-css-resource-types my/markdown-css-reference-regexp
                     my/markdown-css-data-url my/markdown-css-embed
-                    my/markdown-preview-stylesheet my/markdown-preview-template-quote
+                    my/markdown-preview-stylesheet my/markdown-preview-quote-template
                     my/markdown-preview-apply-style))
       (test-readme-eval-defun name))
     (let ((css ".hover\\:red{color:red}h1::before{content:\"\\2192\"}")
@@ -614,22 +681,34 @@ The directory is bound to `style-dir' and deleted afterwards."
           (my/markdown-preview-uuid-js "")
           (my/markdown-mermaid-js "s.replace(/\\s+/g, ' ');")
           (markdown-preview-stylesheets nil)
-          (markdown-preview-script-oninit nil))
+          (markdown-preview-script-oninit nil)
+          (markdown-preview-script-onupdate "a.split('\\n');"))
       (write-region css nil file)
       (should-not (my/markdown-preview-apply-style (list :css file)))
-      (cl-flet ((expand (value)
-                  ;; `markdown-preview--read-preview-template' fills each
-                  ;; placeholder with this non-literal `replace-match'.
-                  (with-temp-buffer
-                    (insert "${MD_STYLE}")
-                    (goto-char (point-min))
-                    (search-forward "${MD_STYLE}")
-                    (replace-match value t)
-                    (buffer-string))))
-        (should (equal (expand (car markdown-preview-stylesheets))
-                       (concat "<style>\n" css "\n</style>")))
-        (should (string-suffix-p "s.replace(/\\s+/g, ' ');"
-                                 (expand markdown-preview-script-oninit)))))))
+      (cl-flet ((fill ()
+                  ;; Like `markdown-preview--read-preview-template', fill
+                  ;; each placeholder with a non-literal `replace-match'.
+                  (mapcar (lambda (value)
+                            (with-temp-buffer
+                              (insert "${MD_STYLE}")
+                              (goto-char (point-min))
+                              (search-forward "${MD_STYLE}")
+                              (replace-match value t)
+                              (buffer-string)))
+                          (append (list markdown-preview-script-oninit
+                                        markdown-preview-script-onupdate)
+                                  markdown-preview-stylesheets))))
+        (let ((filled (my/markdown-preview-quote-template #'fill)))
+          (should (string-suffix-p "s.replace(/\\s+/g, ' ');" (nth 0 filled)))
+          (should (equal (nth 1 filled) "a.split('\\n');"))
+          (should (equal (nth 2 filled) (concat "<style>\n" css "\n</style>"))))))
+    (with-temp-buffer
+      (insert-file-contents test-readme-file)
+      (should (re-search-forward
+               (concat (regexp-quote "(advice-add 'markdown-preview--read-preview-template")
+                       "\\s-+"
+                       (regexp-quote ":around #'my/markdown-preview-quote-template)"))
+               nil t)))))
 
 (ert-deftest test-readme/markdown-preview-deletes-only-temp-page ()
   "The exit hook deletes an absolute preview page but not a relative one."
@@ -652,28 +731,26 @@ The directory is bound to `style-dir' and deleted afterwards."
       (delete-directory default-directory t))))
 
 (ert-deftest test-readme/markdown-export-renders-mermaid ()
-  "Exported HTML loads the pinned Mermaid build and renders on page load."
+  "Exported HTML renders Mermaid on page load, fetching the pinned build lazily."
   (dolist (name '(my/markdown-page-css my/markdown-scheme-js
-                  my/markdown-mermaid-script-tag my/markdown-xhtml-header-content))
+                  my/markdown-xhtml-header-content))
     (test-readme-eval-defun name))
-  (let* ((my/markdown-layout-css "")
-         (my/markdown-mermaid-css "")
-         (my/markdown-mermaid-js-url "https://cdn.example/mermaid.min.js")
-         (my/markdown-mermaid-js-integrity "sha384-test")
-         (my/markdown-mermaid-js "function mdMermaidRender(root) {}")
-         (header (my/markdown-xhtml-header-content '(:scheme dark))))
-    (should (string-prefix-p "<style></style>" header))
-    (should (string-match-p
-             (regexp-quote
-              (concat "<script src=\"https://cdn.example/mermaid.min.js\""
-                      " integrity=\"sha384-test\" crossorigin=\"anonymous\">"))
-             header))
-    (should (string-match-p
-             (regexp-quote
-              "var mdColorScheme = 'dark';function mdMermaidRender(root) {}")
-             header))
-    (should (string-match-p
-             (regexp-quote "mdMermaidRender(document.body)") header))))
+  (let ((my/markdown-layout-css "")
+        (my/markdown-mermaid-css "")
+        (my/markdown-mermaid-js-url "https://cdn.example/mermaid.min.js")
+        (my/markdown-mermaid-js-integrity "sha384-test")
+        (my/markdown-mermaid-js nil))
+    (test-readme-eval-defun 'my/markdown-mermaid-js)
+    (let ((header (my/markdown-xhtml-header-content '(:scheme dark))))
+      (should (string-prefix-p
+               (concat "<style></style><script>var mdColorScheme = 'dark';"
+                       "var mdMermaidSrc = 'https://cdn.example/mermaid.min.js';"
+                       "var mdMermaidIntegrity = 'sha384-test';")
+               header))
+      ;; No blocking <script src>: pages without diagrams skip Mermaid.
+      (should-not (string-match-p "<script src=" header))
+      (should (string-match-p
+               (regexp-quote "mdMermaidRender(document.body)") header)))))
 
 (ert-deftest test-readme/markdown-live-preview-renders-mermaid ()
   "The live browser preview loads Mermaid and renders after each update."
@@ -682,7 +759,6 @@ The directory is bound to `style-dir' and deleted afterwards."
     (let ((content (buffer-string)))
       (dolist (expected
                '("mermaid@12.2.0/dist/mermaid.min.js"
-                 "markdown-preview-javascript (list (my/markdown-mermaid-script-tag))"
                  "my/markdown-preview-uuid-js my/markdown-mermaid-js))"
                  "(my/markdown-preview-apply-style (my/markdown-current-style))"
                  "mdMermaidRender(document.getElementById('markdown-body'));"))
