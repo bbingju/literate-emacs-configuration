@@ -12,15 +12,24 @@
 (require 'test-helper)
 
 (defvar my/flutter-bin-dir nil)
-(defvar my/markdown-github-css-url nil)
 (defvar markdown-preview-file-name nil)
-(defvar my/markdown-body-style nil)
+(defvar markdown-css-paths nil)
+(defvar markdown-xhtml-header-content nil)
+(defvar my/markdown-styles nil)
+(defvar my/markdown-style-directory nil)
+(defvar my/markdown-style nil)
+(defvar my/markdown-layout-css nil)
+(defvar my/markdown-mermaid-css nil)
 (defvar my/markdown-mermaid-js-url nil)
 (defvar my/markdown-mermaid-js-integrity nil)
 (defvar my/markdown-mermaid-js nil)
+(defvar my/markdown-preview-uuid-js nil)
+(defvar markdown-preview-stylesheets nil)
+(defvar markdown-preview-script-oninit nil)
+(defvar markdown-preview--preview-buffers nil)
 
 (defun test-readme-eval-defun (name)
-  "Find and evaluate the defun named NAME in README.org."
+  "Find and evaluate the defun or defconst named NAME in README.org."
   (catch 'found
     (with-temp-buffer
       (insert-file-contents test-readme-file)
@@ -36,12 +45,12 @@
                   (while t
                     (let ((form (read (current-buffer))))
                       (when (and (consp form)
-                                 (eq (car form) 'defun)
+                                 (memq (car form) '(defun defconst))
                                  (eq (cadr form) name))
                         (eval form t)
                         (throw 'found t))))
                 (end-of-file nil)))))))
-    (ert-fail (format "Cannot find defun %S in README.org" name))))
+    (ert-fail (format "Cannot find definition %S in README.org" name))))
 
 (ert-deftest test-readme/file-exists ()
   "README.org exists."
@@ -452,17 +461,175 @@ Blocks under COMMENT headings are excluded."
              (funcall (nth 2 advice) '(1 expanded abbrev))
              '(1)))))
 
-(ert-deftest test-readme/markdown-css-falls-back-to-cdn ()
-  "Markdown HTML uses the local stylesheet when present, otherwise the CDN."
-  (test-readme-eval-defun 'my/markdown-css-paths)
-  (let ((my/markdown-github-css-url "https://cdn.example/github.css")
-        (local-css (expand-file-name "~/.config/markdown/github.css")))
-    (cl-letf (((symbol-function 'file-readable-p)
-               (lambda (file) (equal file local-css))))
-      (should (equal (my/markdown-css-paths) (list local-css))))
-    (cl-letf (((symbol-function 'file-readable-p) #'ignore))
-      (should (equal (my/markdown-css-paths)
-                     '("https://cdn.example/github.css"))))))
+(defmacro test-readme-with-markdown-styles (&rest body)
+  "Run BODY with two built-in Markdown styles and an empty style directory.
+The directory is bound to `style-dir' and deleted afterwards."
+  (declare (indent 0))
+  `(let* ((style-dir (file-name-as-directory
+                      (make-temp-file "test-markdown-styles-" t)))
+          (my/markdown-style-directory style-dir)
+          (my/markdown-style "github")
+          (my/markdown-layout-css ".markdown-body{max-width:980px}")
+          (my/markdown-mermaid-css ".mermaid-diagram{}")
+          (my/markdown-styles
+           '(("github" :css "https://cdn.example/github.css"
+              :layout t :scheme auto :page-css "body{}")
+             ("water" :css "https://cdn.example/water.css" :scheme light))))
+     (dolist (name '(my/markdown-style-alist my/markdown-current-style
+                     my/markdown-page-css my/markdown-scheme-js))
+       (test-readme-eval-defun name))
+     (unwind-protect (progn ,@body)
+       (delete-directory style-dir t))))
+
+(ert-deftest test-readme/markdown-local-css-extends-styles ()
+  "Local CSS replaces the same-named built-in style and adds new ones."
+  (test-readme-with-markdown-styles
+    (should (equal (mapcar #'car (my/markdown-style-alist)) '("github" "water")))
+    (dolist (name '("github" "paper"))
+      (write-region "body{}" nil (expand-file-name (concat name ".css") style-dir)))
+    (let ((styles (my/markdown-style-alist)))
+      (should (equal (mapcar #'car styles) '("github" "water" "paper")))
+      (should (equal (cdr (assoc "github" styles))
+                     (list :css (expand-file-name "github.css" style-dir)
+                           :layout t :scheme 'auto :page-css "body{}")))
+      (should (equal (cdr (assoc "paper" styles))
+                     (list :css (expand-file-name "paper.css" style-dir)
+                           :layout t :scheme 'auto)))
+      ;; The built-in definition itself is left untouched.
+      (should (equal (plist-get (cdr (assoc "github" my/markdown-styles)) :css)
+                     "https://cdn.example/github.css")))))
+
+(ert-deftest test-readme/markdown-style-falls-back-to-first ()
+  "An unknown saved style name falls back to the first style."
+  (test-readme-with-markdown-styles
+    (let ((my/markdown-style "water"))
+      (should (equal (plist-get (my/markdown-current-style) :css)
+                     "https://cdn.example/water.css")))
+    (let ((my/markdown-style "removed-local-style"))
+      (should (equal (plist-get (my/markdown-current-style) :css)
+                     "https://cdn.example/github.css")))))
+
+(ert-deftest test-readme/markdown-page-css-follows-style ()
+  "Only layout styles get the GitHub layout; the scheme reaches Mermaid."
+  (test-readme-with-markdown-styles
+    (let ((github (cdr (assoc "github" my/markdown-styles)))
+          (water (cdr (assoc "water" my/markdown-styles))))
+      (should (equal (my/markdown-page-css github)
+                     "<style>.markdown-body{max-width:980px}body{}.mermaid-diagram{}</style>"))
+      (should (equal (my/markdown-page-css water)
+                     "<style>.mermaid-diagram{}</style>"))
+      (should (equal (my/markdown-scheme-js water)
+                     "var mdColorScheme = 'light';")))))
+
+(ert-deftest test-readme/markdown-apply-style-sets-export ()
+  "Applying a style updates the stylesheet and head of exported HTML."
+  (test-readme-with-markdown-styles
+    (dolist (name '(my/markdown-mermaid-script-tag
+                    my/markdown-xhtml-header-content my/markdown-apply-style))
+      (test-readme-eval-defun name))
+    (let ((my/markdown-style "water")
+          (my/markdown-mermaid-js-url "https://cdn.example/mermaid.min.js")
+          (my/markdown-mermaid-js-integrity "sha384-test")
+          (my/markdown-mermaid-js "")
+          (markdown-css-paths nil)
+          (markdown-xhtml-header-content nil))
+      (cl-letf (((symbol-function 'featurep)
+                 (lambda (feature &rest _)
+                   (not (eq feature 'markdown-preview-mode)))))
+        (should-not (my/markdown-apply-style)))
+      (should (equal markdown-css-paths '("https://cdn.example/water.css")))
+      (should (string-prefix-p "<style>.mermaid-diagram{}</style>"
+                               markdown-xhtml-header-content))
+      (should (string-match-p (regexp-quote "var mdColorScheme = 'light';")
+                              markdown-xhtml-header-content)))))
+
+(ert-deftest test-readme/markdown-preview-inlines-local-css ()
+  "Live preview links remote stylesheets but inlines local ones."
+  (test-readme-eval-defun 'my/markdown-preview-stylesheet)
+  (should (equal (my/markdown-preview-stylesheet '(:css "https://cdn.example/a.css"))
+                 "https://cdn.example/a.css"))
+  (let ((file (make-temp-file "test-markdown-style-" nil ".css" "h1{color:red}")))
+    (unwind-protect
+        (should (equal (my/markdown-preview-stylesheet (list :css file))
+                       "<style>\nh1{color:red}\n</style>"))
+      (delete-file file))))
+
+(ert-deftest test-readme/markdown-preview-embeds-css-resources ()
+  "Inlined local CSS carries its relative fonts, images and imports."
+  (dolist (name '(my/markdown-css-resource-types my/markdown-css-reference-regexp
+                  my/markdown-css-data-url my/markdown-css-embed))
+    (test-readme-eval-defun name))
+  (let ((dir (file-name-as-directory (make-temp-file "test-markdown-css-" t)))
+        (png (unibyte-string #x89 ?P ?N ?G 0)))
+    (unwind-protect
+        (let ((coding-system-for-write 'utf-8-unix))
+          (make-directory (expand-file-name "fonts" dir))
+          (write-region "FONT" nil (expand-file-name "fonts/a.woff2" dir))
+          (let ((coding-system-for-write 'no-conversion))
+            (write-region png nil (expand-file-name "b.png" dir)))
+          (write-region "/* 제목 */h2{background:url(b.png)}" nil
+                        (expand-file-name "theme.css" dir))
+          (write-region
+           (concat "@import \"theme.css\";\n"
+                   "@font-face{src:url( 'fonts/a.woff2?v=1#f' )}\n"
+                   "a{background:url(https://cdn.example/x.png)}\n"
+                   "b{mask:url(#m)}c{background:url(/abs.png)}\n"
+                   "d{background:url(missing.png)}\n"
+                   "e{background:url(data:image/png;base64,AA==)}\n"
+                   ;; An import cycle is left alone.
+                   "@import 'main.css';\n")
+           nil (expand-file-name "main.css" dir))
+          (should
+           (equal
+            (my/markdown-css-embed (expand-file-name "main.css" dir))
+            (concat
+             "@import \"data:text/css;charset=utf-8;base64,"
+             (base64-encode-string
+              (encode-coding-string
+               (concat "/* 제목 */h2{background:url(data:image/png;base64,"
+                       (base64-encode-string png t) ")}")
+               'utf-8)
+              t)
+             "\";\n"
+             "@font-face{src:url( 'data:font/woff2;base64,"
+             (base64-encode-string "FONT" t) "#f' )}\n"
+             "a{background:url(https://cdn.example/x.png)}\n"
+             "b{mask:url(#m)}c{background:url(/abs.png)}\n"
+             "d{background:url(missing.png)}\n"
+             "e{background:url(data:image/png;base64,AA==)}\n"
+             "@import 'main.css';\n"))))
+      (delete-directory dir t))))
+
+(ert-deftest test-readme/markdown-preview-keeps-css-escapes ()
+  "CSS and JavaScript backslashes survive the preview template expansion."
+  (test-readme-with-markdown-styles
+    (dolist (name '(my/markdown-css-resource-types my/markdown-css-reference-regexp
+                    my/markdown-css-data-url my/markdown-css-embed
+                    my/markdown-preview-stylesheet my/markdown-preview-template-quote
+                    my/markdown-preview-apply-style))
+      (test-readme-eval-defun name))
+    (let ((css ".hover\\:red{color:red}h1::before{content:\"\\2192\"}")
+          (file (expand-file-name "paper.css" style-dir))
+          (markdown-preview--preview-buffers (make-hash-table :test 'equal))
+          (my/markdown-preview-uuid-js "")
+          (my/markdown-mermaid-js "s.replace(/\\s+/g, ' ');")
+          (markdown-preview-stylesheets nil)
+          (markdown-preview-script-oninit nil))
+      (write-region css nil file)
+      (should-not (my/markdown-preview-apply-style (list :css file)))
+      (cl-flet ((expand (value)
+                  ;; `markdown-preview--read-preview-template' fills each
+                  ;; placeholder with this non-literal `replace-match'.
+                  (with-temp-buffer
+                    (insert "${MD_STYLE}")
+                    (goto-char (point-min))
+                    (search-forward "${MD_STYLE}")
+                    (replace-match value t)
+                    (buffer-string))))
+        (should (equal (expand (car markdown-preview-stylesheets))
+                       (concat "<style>\n" css "\n</style>")))
+        (should (string-suffix-p "s.replace(/\\s+/g, ' ');"
+                                 (expand markdown-preview-script-oninit)))))))
 
 (ert-deftest test-readme/markdown-preview-deletes-only-temp-page ()
   "The exit hook deletes an absolute preview page but not a relative one."
@@ -486,20 +653,25 @@ Blocks under COMMENT headings are excluded."
 
 (ert-deftest test-readme/markdown-export-renders-mermaid ()
   "Exported HTML loads the pinned Mermaid build and renders on page load."
-  (test-readme-eval-defun 'my/markdown-mermaid-script-tag)
-  (test-readme-eval-defun 'my/markdown-xhtml-header-content)
-  (let* ((my/markdown-body-style "<style>body{}</style>")
+  (dolist (name '(my/markdown-page-css my/markdown-scheme-js
+                  my/markdown-mermaid-script-tag my/markdown-xhtml-header-content))
+    (test-readme-eval-defun name))
+  (let* ((my/markdown-layout-css "")
+         (my/markdown-mermaid-css "")
          (my/markdown-mermaid-js-url "https://cdn.example/mermaid.min.js")
          (my/markdown-mermaid-js-integrity "sha384-test")
          (my/markdown-mermaid-js "function mdMermaidRender(root) {}")
-         (header (my/markdown-xhtml-header-content)))
-    (should (string-prefix-p "<style>body{}</style>" header))
+         (header (my/markdown-xhtml-header-content '(:scheme dark))))
+    (should (string-prefix-p "<style></style>" header))
     (should (string-match-p
              (regexp-quote
               (concat "<script src=\"https://cdn.example/mermaid.min.js\""
                       " integrity=\"sha384-test\" crossorigin=\"anonymous\">"))
              header))
-    (should (string-match-p "function mdMermaidRender(root) {}" header))
+    (should (string-match-p
+             (regexp-quote
+              "var mdColorScheme = 'dark';function mdMermaidRender(root) {}")
+             header))
     (should (string-match-p
              (regexp-quote "mdMermaidRender(document.body)") header))))
 
@@ -511,7 +683,8 @@ Blocks under COMMENT headings are excluded."
       (dolist (expected
                '("mermaid@12.2.0/dist/mermaid.min.js"
                  "markdown-preview-javascript (list (my/markdown-mermaid-script-tag))"
-                 "(concat my/markdown-preview-uuid-js my/markdown-mermaid-js)"
+                 "my/markdown-preview-uuid-js my/markdown-mermaid-js))"
+                 "(my/markdown-preview-apply-style (my/markdown-current-style))"
                  "mdMermaidRender(document.getElementById('markdown-body'));"))
         (should (string-match-p (regexp-quote expected) content))))))
 

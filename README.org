@@ -1407,26 +1407,66 @@ Markdown 문서 편집 시 [[https://jblevins.org/projects/markdown-mode/][markd
 - =C-c P= : Emacs 안의 eww 창에 띄우고 저장할 때마다 갱신한다. eww는 CSS를 거의 적용하지 않는다.
 - =C-c B= : 외부 브라우저에 띄우고 편집하는 동안 계속 갱신한다 (아래 =markdown-preview-mode=).
 
-HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고, 없으면 CDN의 [[https://github.com/sindresorhus/github-markdown-css][github-markdown-css]]를 쓴다.
+HTML 스타일은 =C-c S= (=my/markdown-select-style=)로 고르고, 고른 스타일은 =custom-file= 에 저장된다. 기본값은 =github= 이다.
+- 내장 스타일: =github= (OS 라이트/다크를 따름), =github-light=, =github-dark=, =water=, =simple=, =sakura=, =latex=. 모두 CDN의 고정 버전을 쓴다.
+- =~/.config/markdown/*.css= 파일도 후보에 들어간다. 내장 스타일과 이름이 같은 파일(예: =github.css=)은 내장 스타일을 대체한다.
+- =C-c C-c p= 는 바로 적용된다. 열려 있는 =C-c B= 탭은 새로고침하면 적용된다.
 
 브라우저 미리보기(=C-c C-c p=, =C-c B=)에서는 =```mermaid= 코드 블록을 [[https://mermaid.js.org/][Mermaid]] 다이어그램으로 그린다. 문법이 틀린 블록은 오류 메시지와 원문을 대신 보여준다. eww(=C-c P=)는 JavaScript를 실행하지 않아서 코드 블록 그대로 보인다. Mermaid 버전을 올릴 때는 아래 URL과 SRI 해시를 함께 바꾼다.
 
 #+begin_src emacs-lisp
-  (defconst my/markdown-github-css-url
-    "https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.min.css"
-    "Stylesheet used for Markdown HTML when no local stylesheet exists.")
+  (defconst my/markdown-styles
+    '(("github"
+       :css "https://cdn.jsdelivr.net/npm/github-markdown-css@5.9.0/github-markdown.min.css"
+       :layout t :scheme auto
+       :page-css "@media (prefers-color-scheme:dark){body{background:#0d1117}}")
+      ("github-light"
+       :css "https://cdn.jsdelivr.net/npm/github-markdown-css@5.9.0/github-markdown-light.min.css"
+       :layout t :scheme light)
+      ("github-dark"
+       :css "https://cdn.jsdelivr.net/npm/github-markdown-css@5.9.0/github-markdown-dark.min.css"
+       :layout t :scheme dark :page-css "body{background:#0d1117}")
+      ("water"
+       :css "https://cdn.jsdelivr.net/npm/water.css@2.1.1/out/water.min.css"
+       :scheme auto)
+      ("simple"
+       :css "https://cdn.jsdelivr.net/npm/simpledotcss@2.3.7/simple.min.css"
+       :scheme auto
+       ;; Simple.css draws <article> as a card; the content wrapper is one.
+       :page-css "article.markdown-body{border:0;padding:0;margin:0}")
+      ("sakura"
+       :css "https://cdn.jsdelivr.net/npm/sakura.css@1.5.1/css/sakura.css"
+       :scheme light)
+      ("latex"
+       :css "https://cdn.jsdelivr.net/npm/latex.css@1.14.0/style.min.css"
+       :scheme light))
+    "Built-in Markdown HTML styles as (NAME . PLIST).
+  :css is the stylesheet, :layout applies the GitHub page layout to
+  .markdown-body, :scheme is the Mermaid color scheme (auto, light or
+  dark), and :page-css adds rules for the surrounding page.")
 
-  (defconst my/markdown-body-style
-    (concat "<style>"
-            ".markdown-body{box-sizing:border-box;min-width:200px;"
+  (defvar my/markdown-style-directory (expand-file-name "~/.config/markdown/")
+    "Directory whose *.css files are offered as extra Markdown styles.
+  A file named after a built-in style, such as github.css, replaces it.")
+
+  (defcustom my/markdown-style "github"
+    "Name of the style used for Markdown HTML.
+  See `my/markdown-styles' and `my/markdown-style-directory'."
+    :type 'string
+    :group 'markdown)
+
+  (defconst my/markdown-layout-css
+    (concat ".markdown-body{box-sizing:border-box;min-width:200px;"
             "max-width:980px;margin:0 auto;padding:45px}"
-            "@media (max-width:767px){.markdown-body{padding:15px}}"
-            ".mermaid-diagram{margin:0 0 16px;text-align:center}"
+            "@media (max-width:767px){.markdown-body{padding:15px}}")
+    "Page layout recommended by github-markdown-css.")
+
+  (defconst my/markdown-mermaid-css
+    (concat ".mermaid-diagram{margin:0 0 16px;text-align:center}"
             ".mermaid-diagram pre{text-align:left}"
             ".mermaid-error{color:#cf222e;text-align:left;white-space:pre-wrap;"
-            "font-family:ui-monospace,monospace;font-size:85%}"
-            "</style>")
-    "Page layout recommended by github-markdown-css.")
+            "font-family:ui-monospace,monospace;font-size:85%}")
+    "Styles for rendered Mermaid diagrams and their error messages.")
 
   (defconst my/markdown-mermaid-js-url
     "https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.min.js"
@@ -1441,10 +1481,13 @@ HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고
   var mdMermaidCache = {}, mdMermaidSeq = 0;
   if (window.mermaid) {
     try {
+      // mdColorScheme comes from the selected style: auto, light or dark.
+      var mdScheme = window.mdColorScheme || 'auto';
       mermaid.initialize({
         startOnLoad: false,
         securityLevel: 'strict',
-        theme: window.matchMedia('(prefers-color-scheme: dark)').matches
+        theme: mdScheme === 'dark' || (mdScheme === 'auto' &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches)
           ? 'dark' : 'default'
       });
     } catch (e) { console.error(e); }
@@ -1485,37 +1528,95 @@ HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고
     (format "<script src=\"%s\" integrity=\"%s\" crossorigin=\"anonymous\"></script>"
             my/markdown-mermaid-js-url my/markdown-mermaid-js-integrity))
 
-  (defun my/markdown-xhtml-header-content ()
-    "Return the <head> additions for HTML exported by `markdown-mode'."
-    (concat my/markdown-body-style
+  (defun my/markdown-style-alist ()
+    "Return the available Markdown styles as (NAME . PLIST).
+  CSS files in `my/markdown-style-directory' replace built-in styles of
+  the same name and are appended after them otherwise."
+    (let* ((files (and (file-directory-p my/markdown-style-directory)
+                       (directory-files my/markdown-style-directory t "\\.css\\'")))
+           (local (mapcar (lambda (file) (cons (file-name-base file) file)) files)))
+      (append
+       (mapcar (lambda (style)
+                 (let ((file (cdr (assoc (car style) local))))
+                   (if file
+                       (cons (car style)
+                             (plist-put (copy-sequence (cdr style)) :css file))
+                     style)))
+               my/markdown-styles)
+       (delq nil
+             (mapcar (lambda (entry)
+                       (unless (assoc (car entry) my/markdown-styles)
+                         (list (car entry) :css (cdr entry) :layout t :scheme 'auto)))
+                     local)))))
+
+  (defun my/markdown-current-style ()
+    "Return the plist of `my/markdown-style', or of the first style if unknown."
+    (let ((styles (my/markdown-style-alist)))
+      (cdr (or (assoc my/markdown-style styles) (car styles)))))
+
+  (defun my/markdown-page-css (style)
+    "Return the <style> element that frames the page for STYLE."
+    (concat "<style>"
+            (and (plist-get style :layout) my/markdown-layout-css)
+            (plist-get style :page-css)
+            my/markdown-mermaid-css
+            "</style>"))
+
+  (defun my/markdown-scheme-js (style)
+    "Return JavaScript that tells Mermaid the color scheme of STYLE."
+    (format "var mdColorScheme = '%s';" (or (plist-get style :scheme) 'auto)))
+
+  (defun my/markdown-xhtml-header-content (style)
+    "Return the <head> additions for HTML exported with STYLE."
+    (concat (my/markdown-page-css style)
             (my/markdown-mermaid-script-tag)
-            "<script>" my/markdown-mermaid-js
+            "<script>" (my/markdown-scheme-js style) my/markdown-mermaid-js
             "document.addEventListener('DOMContentLoaded', function () {"
             " mdMermaidRender(document.body); });"
             "</script>"))
 
-  (defun my/markdown-css-paths ()
-    "Return the stylesheets for HTML exported by `markdown-mode'.
-  Prefer the local GitHub stylesheet and fall back to the CDN copy."
-    (let ((local-css (expand-file-name "~/.config/markdown/github.css")))
-      (list (if (file-readable-p local-css)
-                local-css
-              my/markdown-github-css-url))))
+  (defun my/markdown-apply-style ()
+    "Apply `my/markdown-style' to Markdown HTML export and live preview.
+  Return non-nil when a running live preview page was rewritten."
+    (let ((style (my/markdown-current-style)))
+      (setq markdown-css-paths (list (plist-get style :css))
+            markdown-xhtml-header-content (my/markdown-xhtml-header-content style))
+      (and (featurep 'markdown-preview-mode)
+           (my/markdown-preview-apply-style style))))
+
+  (defun my/markdown-select-style (name)
+    "Use the Markdown HTML style NAME and save it for later sessions."
+    (interactive
+     (let* ((styles (my/markdown-style-alist))
+            (completion-extra-properties
+             (list :annotation-function
+                   (lambda (candidate)
+                     (let ((css (plist-get (cdr (assoc candidate styles)) :css)))
+                       (if (and css (file-name-absolute-p css))
+                           (concat "  " (abbreviate-file-name css))
+                         ""))))))
+       (list (completing-read
+              (format "Markdown style (default %s): " my/markdown-style)
+              styles nil t nil nil my/markdown-style))))
+    (customize-save-variable 'my/markdown-style name)
+    (if (my/markdown-apply-style)
+        (message "Markdown style: %s (reload open preview tabs)" name)
+      (message "Markdown style: %s" name)))
 
   (use-package markdown-mode
     :mode
     ("README\\.md\\'" . gfm-mode)
     :init
     (setq markdown-command "cmark-gfm -e table -e autolink -e strikethrough -e tasklist")
-    (setq markdown-css-paths (my/markdown-css-paths)
-          markdown-xhtml-header-content (my/markdown-xhtml-header-content)
-          ;; github-markdown-css only styles elements inside .markdown-body
-          markdown-xhtml-body-preamble "<article class=\"markdown-body\">"
+    (my/markdown-apply-style)
+    ;; github-markdown-css only styles elements inside .markdown-body
+    (setq markdown-xhtml-body-preamble "<article class=\"markdown-body\">"
           markdown-xhtml-body-epilogue "</article>")
     :bind (:map markdown-mode-map
            ;; Preview (C-c p is reserved for projectile; use the default
            ;; `C-c C-c p' for `markdown-preview' instead)
            ("C-c P" . markdown-live-preview-mode)
+           ("C-c S" . my/markdown-select-style)
            ;; Insert
            ("C-c l" . markdown-insert-link)
            ("C-c i" . markdown-insert-image)
@@ -1552,6 +1653,10 @@ HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고
 
 패키지는 페이지 파일 하나에 마지막으로 켠 버퍼의 UUID를 박아 넣는다. 그래서 여러 버퍼를 동시에 미리보면, 탭을 새로고침할 때 다른 버퍼의 문서가 보일 수 있다. 이를 막기 위해 브라우저 탭은 박힌 UUID 대신 자기 URL의 ~?uuid=~ 로 등록한다. 생성 페이지는 버퍼에 관계없이 같은 내용이므로 파일 하나를 함께 쓴다.
 
+HTTP로 띄운 페이지는 로컬 파일을 링크할 수 없어서, 로컬 CSS는 페이지 안에 직접 넣는다.
+- 그러면 CSS 안의 상대 경로 =url()= 과 =@import= 가 CSS 파일이 아니라 페이지 기준으로 풀린다. 그래서 CSS 파일 기준으로 찾은 글꼴·이미지·CSS를 =data:= URL로 바꿔 넣는다. 없는 파일이나 =my/markdown-css-resource-types= 에 없는 형식은 그대로 둔다.
+- 패키지는 페이지 템플릿을 채울 때 백슬래시를 치환 문법으로 읽는다. 그래서 =\2192= 같은 CSS 이스케이프가 깨지거나 오류가 나지 않도록 넣기 전에 백슬래시를 두 번 쓴다.
+
 #+begin_src emacs-lisp
   (defun my/markdown-preview-delete-page ()
     "Delete the generated `markdown-preview-mode' page."
@@ -1579,6 +1684,104 @@ HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고
   "
     "JavaScript that registers a preview tab with the UUID in its URL.")
 
+  (defconst my/markdown-css-resource-types
+    '(("css" . "text/css;charset=utf-8")
+      ("woff2" . "font/woff2") ("woff" . "font/woff")
+      ("ttf" . "font/ttf") ("otf" . "font/otf")
+      ("svg" . "image/svg+xml") ("png" . "image/png")
+      ("jpg" . "image/jpeg") ("jpeg" . "image/jpeg")
+      ("gif" . "image/gif") ("webp" . "image/webp") ("avif" . "image/avif"))
+    "Media types of the local files an inlined stylesheet may embed.")
+
+  (defconst my/markdown-css-reference-regexp
+    (concat "url(\\s-*\\([\"']?\\)\\([^\"')[:space:]]+\\)\\1\\s-*)"
+            "\\|@import\\s-+\\([\"']\\)\\([^\"']+\\)\\3")
+    "Regexp matching CSS url() and @import references.
+  Group 2 or 4 holds the referenced URL.")
+
+  (defun my/markdown-css-data-url (ref dir seen)
+    "Return REF, relative to DIR, as a data: URL, or nil to keep REF.
+  Only relative references to existing files of a type listed in
+  `my/markdown-css-resource-types' are embedded.  Stylesheets are
+  embedded recursively, except those in SEEN, which would loop."
+    (unless (string-match-p "\\`\\(?:[a-zA-Z][-+.a-zA-Z0-9]*:\\|[/#]\\)" ref)
+      (let* ((query (string-match "[?#]" ref))
+             (fragment (and query (string-match "#.*" ref query)
+                            (match-string 0 ref)))
+             (file (expand-file-name (substring ref 0 query) dir))
+             (type (cdr (assoc-string (or (file-name-extension file) "")
+                                      my/markdown-css-resource-types t))))
+        (when (and type (file-regular-p file)
+                   (not (member (file-truename file) seen)))
+          (concat "data:" type ";base64,"
+                  (base64-encode-string
+                   (if (string-prefix-p "text/css" type)
+                       (encode-coding-string
+                        (my/markdown-css-embed file seen) 'utf-8)
+                     (with-temp-buffer
+                       (set-buffer-multibyte nil)
+                       (insert-file-contents-literally file)
+                       (buffer-string)))
+                   t)
+                  fragment)))))
+
+  (defun my/markdown-css-embed (file &optional seen)
+    "Return the CSS in FILE with its relative references embedded.
+  Inlined CSS resolves url() and @import against the page, not FILE, so
+  local fonts, images and imported stylesheets become data: URLs.  SEEN
+  lists the stylesheets already being embedded."
+    (let ((seen (cons (file-truename file) seen))
+          (dir (file-name-directory (expand-file-name file))))
+      (with-temp-buffer
+        ;; CSS defaults to UTF-8; locale detection could pick e.g. CP949.
+        (let ((coding-system-for-read 'utf-8-auto))
+          (insert-file-contents file))
+        (while (re-search-forward my/markdown-css-reference-regexp nil t)
+          (let* ((group (if (match-beginning 2) 2 4))
+                 (beg (match-beginning group))
+                 (end (match-end group))
+                 (url (my/markdown-css-data-url (match-string group) dir seen)))
+            (when url
+              (delete-region beg end)
+              (goto-char beg)
+              (insert url))))
+        (buffer-string))))
+
+  (defun my/markdown-preview-stylesheet (style)
+    "Return the `markdown-preview-stylesheets' entry for STYLE.
+  The preview page is served over HTTP and cannot link to local files,
+  so local stylesheets are inlined."
+    (let ((css (plist-get style :css)))
+      (if (file-name-absolute-p css)
+          (concat "<style>\n" (my/markdown-css-embed css) "\n</style>")
+        css)))
+
+  (defun my/markdown-preview-template-quote (string)
+    "Quote STRING for `markdown-preview--read-preview-template'.
+  The template is filled with non-literal `replace-match', which reads
+  backslashes as substitutions, so CSS escapes like \\2192 need doubling."
+    (string-replace "\\" "\\\\" string))
+
+  (defun my/markdown-preview-apply-style (style)
+    "Use STYLE in `markdown-preview-mode' pages.
+  When previews are running, rewrite the shared page so that reloading a
+  tab picks up STYLE, and return non-nil."
+    (setq markdown-preview-stylesheets
+          (mapcar #'my/markdown-preview-template-quote
+                  (list (my/markdown-preview-stylesheet style)
+                        (my/markdown-page-css style)))
+          markdown-preview-script-oninit
+          (my/markdown-preview-template-quote
+           (concat (my/markdown-scheme-js style)
+                   my/markdown-preview-uuid-js my/markdown-mermaid-js)))
+    (let ((uuid (catch 'found
+                  (maphash (lambda (uuid _buffer) (throw 'found uuid))
+                           markdown-preview--preview-buffers))))
+      (when uuid
+        ;; The page does not depend on the buffer, so any running UUID works.
+        (markdown-preview--read-preview-template uuid markdown-preview-file-name)
+        t)))
+
   (use-package markdown-preview-mode
     :after markdown-mode
     :bind (:map markdown-mode-map
@@ -1589,13 +1792,10 @@ HTML 스타일은 =~/.config/markdown/github.css= 가 있으면 그것을 쓰고
     (setq markdown-preview-file-name
           (make-temp-file "markdown-preview-" nil ".html"))
     (add-hook 'kill-emacs-hook #'my/markdown-preview-delete-page)
-    (setq markdown-preview-stylesheets
-          (list my/markdown-github-css-url my/markdown-body-style)
-          ;; Pass a complete tag: the package's (URL . ATTRIBUTES) form
+    (my/markdown-preview-apply-style (my/markdown-current-style))
+    (setq ;; Pass a complete tag: the package's (URL . ATTRIBUTES) form
           ;; signals wrong-type-argument in `markdown-preview--scripts'.
           markdown-preview-javascript (list (my/markdown-mermaid-script-tag))
-          markdown-preview-script-oninit
-          (concat my/markdown-preview-uuid-js my/markdown-mermaid-js)
           markdown-preview-script-onupdate
           "mdMermaidRender(document.getElementById('markdown-body'));"))
 #+end_src
